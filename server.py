@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""Serve watkins antichess proof trees."""
+
+import aiohttp.web
+
 import sys
 import logging
 import asyncio
@@ -81,10 +85,27 @@ class Driver:
         self.transport, self.protocol = loop.run_until_complete(loop.subprocess_exec(Protocol, "./LOSINGv1/parse", "easy12.done"))
 
 
-if __name__ == "__main__":
+def main():
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
+
+    port = 5005
+
     d = Driver(loop, sys.argv[1])
     print(loop.run_until_complete(d.protocol.query("foo")))
     loop.run_forever()
     loop.close()
+
+    app = aiohttp.web.Application(loop=loop)
+    app.router.add_route("POST", "/", query)
+
+    aiohttp.web.run_app(app)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("-v", "--verbose", help="log debug messages")
+    parser.add_argument("--bind", default="127.0.0.1", help="bind interface")
+    parser.add_argument("-p", "--port", type=int, default=5005, help="http port (default: 5005)")
+    parser.add_argument("proofs", nargs="+")
+    main(parser.parse_arguments())
