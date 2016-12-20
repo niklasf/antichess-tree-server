@@ -122,7 +122,8 @@ class Api:
         moves = []
 
         try:
-            for uci in request.GET.get("moves", "").split():
+            post = yield from request.post()
+            for uci in post.get("moves", request.GET.get("moves", "")).split():
                 board.push_uci(uci)
                 moves.append(uci)
         except ValueError:
