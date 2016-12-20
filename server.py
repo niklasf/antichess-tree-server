@@ -134,6 +134,12 @@ class Api:
 
         q = " ".join(moves)
 
+        response = {
+            "variant_win": board.is_variant_win(),
+            "variant_loss": board.is_variant_loss(),
+            "moves": []
+        }
+
         for driver in self.drivers:
             if q.startswith(driver.prolog):
                 result = yield from driver.query(q)
@@ -142,11 +148,10 @@ class Api:
                     move["san"] = board.san(board.parse_uci(move["uci"]))
 
                 if result:
-                    return jsonp(request, {
-                        "moves": result
-                    })
+                    response["moves"] = result
+                    break
 
-        return jsonp(request, {"moves": []})
+        return jsonp(request, response)
 
 
 def main(args):
