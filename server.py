@@ -97,7 +97,10 @@ def jsonp(request, obj):
     else:
         return aiohttp.web.Response(
             text=json_str,
-            content_type="application/json")
+            content_type="application/json",
+            headers={
+                "Access-Control-Allow-Origin": "*"
+            })
 
 
 class Api:
