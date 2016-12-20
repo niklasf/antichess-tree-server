@@ -2,11 +2,16 @@
 
 """Serve watkins antichess proof trees."""
 
+import chess.variant
+
 import aiohttp.web
 
 import sys
 import logging
 import asyncio
+import argparse
+import os.path
+import json
 
 
 class Protocol(asyncio.SubprocessProtocol):
@@ -41,6 +46,7 @@ class Protocol(asyncio.SubprocessProtocol):
             self.line_received(prefix.decode("utf-8"))
 
     def send_line(self, line):
+        logging.debug("%d << %s", self.transport.get_pid(), line)
         self.transport.get_pipe_transport(0).write((line + "\n").encode("utf-8"))
 
     def line_received(self, line):
@@ -50,7 +56,7 @@ class Protocol(asyncio.SubprocessProtocol):
         elif line == "Ready for input":
             logging.info("Subprocess %d is ready for input, prolog: %s", self.transport.get_pid(), self.prolog or "<none>")
             self.ready.set()
-        elif line.startswith("Val:") or line == "Not in BOOK":
+        elif line.startswith("Val:") or line == "Not in BOOK" or line == "No children":
             pass
         elif line == "QUERY COMPLETE":
             self.query_ready.set()
@@ -71,7 +77,7 @@ class Protocol(asyncio.SubprocessProtocol):
             self.query_result = []
 
             self.query_ready.clear()
-            self.send_line("query e2e3")
+            self.send_line("query " + query)
             yield from self.query_ready.wait()
 
             return self.query_result
@@ -80,32 +86,77 @@ class Protocol(asyncio.SubprocessProtocol):
             self.semaphore.release()
 
 
-class Driver:
-    def __init__(self, loop, proof):
-        self.transport, self.protocol = loop.run_until_complete(loop.subprocess_exec(Protocol, "./LOSINGv1/parse", "easy12.done"))
+def jsonp(request, obj):
+    json_str = json.dumps(obj, indent=2, sort_keys=True)
+
+    callback = request.GET.get("callback")
+    if callback:
+        return aiohttp.web.Response(
+            text="%s(%s)" % (callback, json_str),
+            content_type="application/javascript")
+    else:
+        return aiohttp.web.Response(
+            text=json_str,
+            content_type="application/json")
 
 
-def main():
+class Api:
+
+    def __init__(self, proofs):
+        self.drivers = []
+
+        loop = asyncio.get_event_loop()
+
+        for proof in proofs:
+            _, driver = loop.run_until_complete(
+                loop.subprocess_exec(
+                    Protocol,
+                    os.path.join(os.path.dirname(__file__), "LOSINGv1", "parse"),
+                    proof))
+
+            self.drivers.append(driver)
+
+    @asyncio.coroutine
+    def query(self, request):
+        board = chess.variant.GiveawayBoard()
+        moves = []
+
+        try:
+            for uci in request.GET.get("moves", "").split():
+                board.push_uci(uci)
+                moves.append(uci)
+        except ValueError:
+            raise aiohttp.web.HTTPBadRequest()
+
+        q = " ".join(moves)
+
+        for driver in self.drivers:
+            if q.startswith(driver.prolog):
+                result = yield from driver.query(q)
+                if result:
+                    return jsonp(request, {
+                        "moves": result
+                    })
+
+        return jsonp(request, {"moves": []})
+
+
+def main(args):
     logging.basicConfig(level=logging.DEBUG)
-    loop = asyncio.get_event_loop()
 
-    port = 5005
+    api = Api(args.proofs)
 
-    d = Driver(loop, sys.argv[1])
-    print(loop.run_until_complete(d.protocol.query("foo")))
-    loop.run_forever()
-    loop.close()
+    app = aiohttp.web.Application()
+    app.router.add_route("POST", "/", api.query)
+    app.router.add_route("GET", "/", api.query)
 
-    app = aiohttp.web.Application(loop=loop)
-    app.router.add_route("POST", "/", query)
-
-    aiohttp.web.run_app(app)
+    aiohttp.web.run_app(app, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("-v", "--verbose", help="log debug messages")
-    parser.add_argument("--bind", default="127.0.0.1", help="bind interface")
+    parser.add_argument("--host", default="127.0.0.1", help="bind interface")
     parser.add_argument("-p", "--port", type=int, default=5005, help="http port (default: 5005)")
     parser.add_argument("proofs", nargs="+")
-    main(parser.parse_arguments())
+    main(parser.parse_args())
