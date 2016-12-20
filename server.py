@@ -142,7 +142,7 @@ class Api:
 
 
 def main(args):
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
 
     api = Api(args.proofs)
 
@@ -155,7 +155,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("-v", "--verbose", help="log debug messages")
+    parser.add_argument("-v", "--verbose", action="store_true", help="log debug messages")
     parser.add_argument("--host", default="127.0.0.1", help="bind interface")
     parser.add_argument("-p", "--port", type=int, default=5005, help="http port (default: 5005)")
     parser.add_argument("proofs", nargs="+")
