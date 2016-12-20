@@ -137,6 +137,10 @@ class Api:
         for driver in self.drivers:
             if q.startswith(driver.prolog):
                 result = yield from driver.query(q)
+
+                for move in result:
+                    move["san"] = board.san(board.parse_uci(move["uci"]))
+
                 if result:
                     return jsonp(request, {
                         "moves": result
