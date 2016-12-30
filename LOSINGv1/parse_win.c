@@ -159,7 +159,7 @@ WIN_STRUCT* load_wintree_file_with_counts(char *A)
  d=W[0].data&0x3fffffff; s=W[0].move; WS->MOVE_LIST=malloc(s*sizeof(uint16));
  for (u=0;u<s;u++) fread(&(WS->MOVE_LIST[u]),2,1,F);
  if (s) printf("Move list:");
- for (u=0;u<s;u++) printf(" %s",Notate(N,WS->MOVE_LIST[u]));
+ for (u=0;u<s;u++) printf(" %d %s",WS->MOVE_LIST[u], Notate(N,WS->MOVE_LIST[u]));
  if (s) printf("\n");
  sz=((uint64) d)*sizeof(WIN_NODE); WS->W=realloc(WS->W,sz+65536); W=WS->W;
  for (u=1;u<d;u++)
