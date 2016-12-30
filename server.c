@@ -69,7 +69,7 @@ static const node_t *tree_next(const tree_t *tree, const node_t *node) {
 }
 
 static node_t *tree_from_index(const tree_t *tree, uint32_t index) {
-    if (!index) return tree->root;
+    if (!index) return NULL;
     else return tree->nodes + index - 1;
 }
 
@@ -165,7 +165,8 @@ bool tree_open(const char *filename, tree_t *tree) {
 
     uint32_t *data = (uint32_t *)(tree->nodes + tree->size - 1);
     while ((uint8_t *) data < ((uint8_t *) tree->root) + sb.st_size) {
-        node_t *node = tree_from_index_with_root(tree, *data++);
+        node_t *node = tree_from_index(tree, *data++);
+        if (!node) node = tree->root;
         int32_t size = *((int32_t *) data++);
         if (!tree_lookup_subtree_size(tree, node)) tree_save_subtree_size(tree, node, size);
     }
@@ -224,16 +225,21 @@ void tree_debug(const tree_t *tree) {
     }
 }
 
-struct query_result {
+typedef struct query_result {
     move_t move;
     uint32_t index;
     int32_t size;
-};
+} query_result_t;
+
+static int query_result_cmp(const void *a, const void *b) {
+    const query_result_t *ra = a, *rb = b;
+    return (ra->size > rb->size) ? -1 : (ra->size < rb->size);
+}
 
 void tree_walk(tree_t *tree, const node_t *node, bool Transpositions) {
     uint32_t index = tree_index(tree, node);
-    uint16_t k = node->move >> 16;
-    assert(index != 0x3fffffff);
+    uint16_t k = node->move >> 12;
+    assert(node_trans_index(node) != 0x3fffffff);
     assert(node->move == 0xfedc || (k != 7 && k < 9));
 
     if (Transpositions) {
@@ -262,8 +268,8 @@ void tree_walk(tree_t *tree, const node_t *node, bool Transpositions) {
 int32_t tree_subtree_size(tree_t *tree, const node_t *node) {
     if (tree->root == node) return tree->size;
 
-    uint16_t k = node->move >> 16;
-    assert(tree_index(tree, node) != 0x3fffffff);
+    uint16_t k = node->move >> 12;
+    assert(node_trans_index(node) != 0x3fffffff);
     assert(node->move == 0xfedc || (k != 7 && k < 9));
 
     while (node_is_trans(node)) node = tree_trans(tree, node);
@@ -290,11 +296,13 @@ size_t tree_dump_children(tree_t *tree, const node_t *node) {
     const node_t *child = tree_next(tree, node);
 
     do {
-        result[num_children].move = node->move;
+        result[num_children].move = child->move;
         result[num_children].index = tree_index(tree, child);
         result[num_children].size = tree_subtree_size(tree, child);
         num_children++;
     } while ((child = tree_next_sibling(tree, child)) && num_children < 256);
+
+    qsort(result, num_children, sizeof(query_result_t), query_result_cmp);
 
     for (size_t i = 0; i < num_children; i++) {
         char uci[8];
@@ -326,6 +334,7 @@ int main(int argc, char *argv[]) {
 
     tree_debug(&tree);
 
+    tree_query(&tree);
     tree_query(&tree);
 
     return EXIT_SUCCESS;
