@@ -162,7 +162,10 @@ uint32_t tree_move(const struct tree_info *tree, move_t move, uint32_t n) {
     uint32_t child = n + 1;
 
     do {
-        if (tree_node(tree, child)->move == move) return child;
+        if (tree_node(tree, child)->move == move) {
+            while (tree_is_trans(tree, child)) child = tree_get_node(tree, child);
+            return child;
+        }
     } while ((child = tree_next_sibling(tree, child)));
 
     return -1;
@@ -300,8 +303,8 @@ size_t tree_dump_children(const struct tree_info *tree, uint32_t n) {
 }
 
 void tree_query(const struct tree_info *tree) {
-    uint32_t n = 0;
-    while (tree_is_trans(tree, n)) n = tree_get_node(tree, n);
+    uint32_t n = tree_move(tree, 3104, 0);
+    //while (tree_is_trans(tree, n)) n = tree_get_node(tree, n);
 
     if (n != -1 && tree_has_child(tree, n)) {
         printf("output children\n");
