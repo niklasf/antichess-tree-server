@@ -23,6 +23,8 @@ struct tree_info {
 
     size_t prolog_len;
     move_t *prolog;
+
+    size_t nodes_len;
 };
 
 bool open_tree(const char *filename, struct tree_info *tree) {
@@ -37,6 +39,8 @@ bool open_tree(const char *filename, struct tree_info *tree) {
 
     tree->prolog_len = *((uint16_t *)(tree->map + 4));
     tree->prolog = (move_t *)(tree->map + 6);
+
+    tree->nodes_len = (*((uint32_t *) tree->map)) & 0x3fffffff;
 
     return true;
 }
@@ -69,6 +73,8 @@ int main() {
         printf("could not open proof tree: %s\n", strerror(errno));
         return EXIT_FAILURE;
     }
+
+    printf("nodes_len: %zu (%zumb) \n", tree.nodes_len, (sizeof(win_node_t) * tree.nodes_len >> 20));
 
     for (int i = 0; i < tree.prolog_len; i++) {
         char uci[8];
