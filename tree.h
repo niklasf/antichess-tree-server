@@ -18,7 +18,7 @@ typedef struct hash_entry {
     uint32_t size;
 } hash_entry_t;
 
-const size_t hashtable_len = 0x100000;
+static const size_t hashtable_len = 0x100000;
 
 typedef struct tree {
     int fd;
@@ -36,14 +36,14 @@ typedef struct tree {
     uint64_t *arr;
 } tree_t;
 
-const size_t max_results = 256;
+static const size_t max_results = 256;
 
 typedef struct query_result {
     move_t move;
     uint32_t size;
 } query_result_t;
 
-const size_t max_uci = 8;
+static const size_t max_uci = 8;
 void move_to_uci(uint16_t move, char *uci);
 
 bool node_has_child(const node_t *node);
