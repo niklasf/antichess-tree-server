@@ -3,11 +3,11 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
-#include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+
+#include "tree.h"
 
 static inline int popcount(uint64_t b) {
     return __builtin_popcountll(b);
@@ -30,38 +30,6 @@ static uint32_t compute_hash(uint32_t n) {
     k += ((~n) >> 8) & 0xaa55aa;
     return k & 0xfffff;
 }
-
-typedef uint16_t move_t;
-
-typedef struct node {
-    uint32_t data;
-    uint16_t move;
-} __attribute__((packed)) node_t;
-
-_Static_assert(sizeof(node_t) == 6, "node_t packed");
-
-typedef struct hash_entry {
-    uint32_t index;
-    uint32_t size;
-} hash_entry_t;
-
-const size_t hashtable_len = 0x100000;
-
-typedef struct tree {
-    int fd;
-
-    uint32_t prolog_len;
-    move_t *prolog;
-
-    uint32_t size;
-    node_t *root;
-    node_t *nodes;
-
-    hash_entry_t *hashtable;
-    size_t num_hash_entries;
-
-    uint64_t *arr;
-} tree_t;
 
 static const node_t *tree_next(const tree_t *tree, const node_t *node) {
     if (tree->root == node) return tree->nodes;
@@ -90,25 +58,25 @@ static uint32_t node_trans_index(const node_t *node) {
     return node->data & 0x3fffffff;
 }
 
-static bool node_has_child(const node_t *node) {
+bool node_has_child(const node_t *node) {
     return ((node->data & (3U << 30)) == (1U << 30)) && ((node->data & 0x3fffffff) != 0x3fffffff);
 }
 
-const node_t *tree_trans(const tree_t *tree, const node_t *node) {
+static const node_t *tree_trans(const tree_t *tree, const node_t *node) {
     return tree_from_index(tree, node_trans_index(node));
 }
 
-const node_t *tree_trans_ns(const tree_t *tree, const node_t *node) {
+static const node_t *tree_trans_ns(const tree_t *tree, const node_t *node) {
     if ((node->data & 0x3fffffff) != 0x3fffffff) return tree_from_index(tree, node->data & 0x3fffffff);
     else return ((node->data & (1U << 30)) == (1U << 30)) ? tree_next(tree, node) : NULL;
 }
 
-const node_t *tree_next_sibling(const tree_t *tree, const node_t *node) {
+static const node_t *tree_next_sibling(const tree_t *tree, const node_t *node) {
     if (node_trans_and_sibling(node)) return tree_next(tree, node);
     else return node_is_trans(node) ? NULL : tree_trans_ns(tree, node);
 }
 
-uint32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node) {
+static uint32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node) {
     while (node_is_trans(node)) node = tree_trans(tree, node);
 
     uint32_t index = tree_index(tree, node);
@@ -122,7 +90,7 @@ uint32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node) {
     return 0;
 }
 
-bool tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t size) {
+static bool tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t size) {
     if (tree->num_hash_entries > hashtable_len / 8) {
         // Do not fill table too much.
         return false;
@@ -239,18 +207,12 @@ void tree_debug(const tree_t *tree, bool dump_hashtable) {
     }
 }
 
-typedef struct query_result {
-    move_t move;
-    uint32_t index;
-    uint32_t size;
-} query_result_t;
-
 static int query_result_cmp(const void *a, const void *b) {
     const query_result_t *ra = a, *rb = b;
     return (ra->size > rb->size) ? -1 : (ra->size < rb->size);
 }
 
-void tree_walk(tree_t *tree, const node_t *node, bool transpositions) {
+static void tree_walk(tree_t *tree, const node_t *node, bool transpositions) {
     uint32_t index = tree_index(tree, node);
     uint16_t k = node->move >> 12;
     assert(node_trans_index(node) != 0x3fffffff);
@@ -279,7 +241,7 @@ void tree_walk(tree_t *tree, const node_t *node, bool transpositions) {
     } while ((child = tree_next_sibling(tree, child)));
 }
 
-int32_t tree_subtree_size(tree_t *tree, const node_t *node) {
+static uint32_t tree_subtree_size(tree_t *tree, const node_t *node) {
     if (tree->root == node) return tree->size;
 
     uint16_t k = node->move >> 12;
