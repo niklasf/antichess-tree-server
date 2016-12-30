@@ -21,9 +21,6 @@ static inline void arr_set_bit(uint64_t *arr, size_t n) {
     arr[n >> 6] |= (1ULL << (n & 0x3f));
 }
 
-#define ABS(x) (((x) >= 0) ? (x) : -(x))
-#define SIGN(x) (((x) > 0) ? 1 : -1)
-
 static uint32_t compute_hash(uint32_t n) {
     uint32_t k = n * n;
     k += (n >> 10) ^ ((~n) & 0x3ff);
@@ -43,10 +40,10 @@ typedef struct node {
 
 _Static_assert(sizeof(node_t) == 6, "node_t packed");
 
-typedef struct subtree_entry {
+typedef struct hash_entry {
     uint32_t index;
-    int32_t size;
-} subtree_entry_t;
+    uint32_t size;
+} hash_entry_t;
 
 typedef struct tree {
     int fd;
@@ -54,11 +51,11 @@ typedef struct tree {
     uint32_t prolog_len;
     move_t *prolog;
 
-    int32_t size;
+    uint32_t size;
     node_t *root;
     node_t *nodes;
 
-    subtree_entry_t *subtrees;
+    hash_entry_t *hashtable;
 
     uint64_t *arr;
 } tree_t;
@@ -108,13 +105,13 @@ const node_t *tree_next_sibling(const tree_t *tree, const node_t *node) {
     else return node_is_trans(node) ? NULL : tree_trans_ns(tree, node);
 }
 
-int32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node) {
+uint32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node) {
     while (node_is_trans(node)) node = tree_trans(tree, node);
 
     uint32_t index = tree_index(tree, node);
     uint32_t bucket = compute_hash(index);
-    while (tree->subtrees[bucket].index) {
-        if (index == tree->subtrees[bucket].index) return tree->subtrees[bucket].size;
+    while (tree->hashtable[bucket].index) {
+        if (index == tree->hashtable[bucket].index) return tree->hashtable[bucket].size;
         bucket++;
         if (bucket == 0x100000) bucket = 0;
     }
@@ -122,22 +119,22 @@ int32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node) {
     return 0;
 }
 
-void tree_save_subtree_size(tree_t *tree, const node_t *node, int32_t size) {
+void tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t size) {
     while (node_is_trans(node)) node = tree_trans(tree, node);
 
     uint32_t bucket = compute_hash(tree_index(tree, node));
-    while (tree->subtrees[bucket].index) {
+    while (tree->hashtable[bucket].index) {
         bucket++;
         if (bucket == 0x100000) bucket = 0;
     }
 
-    tree->subtrees[bucket].index = tree_index(tree, node);
-    tree->subtrees[bucket].size = size;
+    tree->hashtable[bucket].index = tree_index(tree, node);
+    tree->hashtable[bucket].size = size;
 
     if (!node_has_child(node)) return;
 
     if (!tree_next_sibling(tree, tree_next(tree, node)))
-        tree_save_subtree_size(tree, tree_next(tree, node), (ABS(size) - 1) * SIGN(size));
+        tree_save_subtree_size(tree, tree_next(tree, node), (size > 0) ? (size - 1) : 0);
 }
 
 bool tree_open(const char *filename, tree_t *tree) {
@@ -160,14 +157,14 @@ bool tree_open(const char *filename, tree_t *tree) {
     tree->arr = calloc(tree->size + 1, sizeof(uint64_t));
     if (!tree->arr) return false;
 
-    tree->subtrees = calloc(0x100000, sizeof(subtree_entry_t));
-    if (!tree->subtrees) return false;
+    tree->hashtable = calloc(0x100000, sizeof(hash_entry_t));
+    if (!tree->hashtable) return false;
 
     uint32_t *data = (uint32_t *)(tree->nodes + tree->size - 1);
     while ((uint8_t *) data < ((uint8_t *) tree->root) + sb.st_size) {
         node_t *node = tree_from_index(tree, *data++);
         if (!node) node = tree->root;
-        int32_t size = *((int32_t *) data++);
+        uint32_t size = *data++;
         if (!tree_lookup_subtree_size(tree, node)) tree_save_subtree_size(tree, node, size);
     }
 
@@ -221,14 +218,14 @@ void tree_debug(const tree_t *tree) {
     }
 
     for (size_t i = 0; i < 0x100000; i++) {
-        if (tree->subtrees[i].index) printf("subtrees[%zu] = <%d, %d>\n", i, tree->subtrees[i].index, tree->subtrees[i].size);
+        if (tree->hashtable[i].index) printf("hashtable[%zu] = <%d, %d>\n", i, tree->hashtable[i].index, tree->hashtable[i].size);
     }
 }
 
 typedef struct query_result {
     move_t move;
     uint32_t index;
-    int32_t size;
+    uint32_t size;
 } query_result_t;
 
 static int query_result_cmp(const void *a, const void *b) {
@@ -248,7 +245,7 @@ void tree_walk(tree_t *tree, const node_t *node, bool transpositions) {
     }
 
     if (node_is_trans(node)) {
-        tree_walk(tree, tree_trans(tree, node), Transpositions);
+        tree_walk(tree, tree_trans(tree, node), transpositions);
         return;
     }
 
@@ -261,7 +258,7 @@ void tree_walk(tree_t *tree, const node_t *node, bool transpositions) {
 
     const node_t *child = tree_next(tree, node);
     do {
-        tree_walk(tree, child, Transpositions);
+        tree_walk(tree, child, transpositions);
     } while ((child = tree_next_sibling(tree, child)));
 }
 
@@ -274,14 +271,14 @@ int32_t tree_subtree_size(tree_t *tree, const node_t *node) {
 
     while (node_is_trans(node)) node = tree_trans(tree, node);
 
-    int32_t subtree_size = tree_lookup_subtree_size(tree, node);
+    uint32_t subtree_size = tree_lookup_subtree_size(tree, node);
     if (subtree_size) return subtree_size;
 
-    int32_t size = (tree->size + 63) / 64;
+    uint32_t size = (tree->size + 63) / 64;
     memset(tree->arr, 0, sizeof(uint64_t) * size);
     tree_walk(tree, node, false);
 
-    for (int32_t i = 0; i < size; i++) {
+    for (uint32_t i = 0; i < size; i++) {
         subtree_size += popcount(tree->arr[i]);
     }
 
