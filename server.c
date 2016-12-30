@@ -55,7 +55,7 @@ struct tree_info {
 
 node_t *tree_node(const struct tree_info *tree, uint32_t n) {
     if (!n) return tree->root;
-    else return tree->nodes + n;
+    else return tree->nodes + n - 1;
 }
 
 bool tree_is_trans(const struct tree_info *tree, uint32_t n) {
@@ -73,7 +73,7 @@ uint32_t tree_get_node(const struct tree_info *tree, uint32_t n) {
 uint32_t tree_get_node_ns(const struct tree_info *tree, uint32_t n) {
     node_t *node = tree_node(tree, n);
     if ((node->data & 0x3fffffff) != 0x3fffffff) return node->data & 0x3fffffff;
-    else return ((node->data & (1U << 30)) == (1U << 30)) ? n + 1 : 0;
+    else return ((node->data & (1U << 30)) == (1U << 30)) ? (n + 1) : 0;
 }
 
 bool tree_has_child(const struct tree_info *tree, uint32_t n) {
@@ -112,7 +112,9 @@ void tree_do_subtree_count(struct tree_info *tree, uint32_t n, int32_t count) {
     tree->counted[bucket].size = count;
 
     if (!tree_has_child(tree, n)) return;
-    if (!tree_next_sibling(tree, n + 1)) tree_do_subtree_count(tree, n + 1, (ABS(count) - 1) * SIGN(count));
+
+    if (!tree_next_sibling(tree, n + 1))
+        tree_do_subtree_count(tree, n + 1, (ABS(count) - 1) * SIGN(count));
 }
 
 bool tree_open(const char *filename, struct tree_info *tree) {
@@ -135,20 +137,12 @@ bool tree_open(const char *filename, struct tree_info *tree) {
     tree->counted = calloc(0x100000, sizeof(counted_t));
     if (!tree->counted) return false;
 
-    int i = 0;
-    uint8_t *data = (uint8_t *)(tree->nodes + tree->size - 1);
-    while (data < ((uint8_t *) tree->root) + sb.st_size) {
-        uint32_t node = *((uint32_t *) data);
-        data += 4;
-        int32_t size = *((int32_t *) data);
-        data += 4;
-
+    uint32_t *data = (uint32_t *)(tree->nodes + tree->size - 1);
+    while ((uint8_t *) data < ((uint8_t *) tree->root) + sb.st_size) {
+        uint32_t node = *data++;
+        int32_t size = *((int32_t *) data++);
         if (!tree_subtree_count(tree, node)) tree_do_subtree_count(tree, node, size);
-        printf("%d %d\n", node, size);
-        i++;
     }
-
-    printf("i = %d\n", i);
 
     return true;
 }
@@ -181,6 +175,10 @@ void tree_debug(const struct tree_info *tree) {
         char uci[8];
         move_to_uci(tree->prolog[i], uci);
         printf("prolog[%zu] = %s\n", i, uci);
+    }
+
+    for (size_t i = 0; i < 0x100000; i++) {
+        if (tree->counted[i].n) printf("counted[%zu] = <%d, %d>\n", i, tree->counted[i].n, tree->counted[i].size);
     }
 }
 
