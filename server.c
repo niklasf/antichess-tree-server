@@ -210,7 +210,7 @@ void move_to_uci(uint16_t move, char *uci) {
     if (move & (7 << 12)) sprintf(uci + 4, "%c", promotions[move >> 12]);
 }
 
-void tree_debug(const tree_t *tree) {
+void tree_debug(const tree_t *tree, bool dump_hashtable) {
     printf("tree size = %u (%zumb) \n", tree->size, (sizeof(node_t) * tree->size >> 20));
 
     for (size_t i = 0; i < tree->prolog_len; i++) {
@@ -219,8 +219,10 @@ void tree_debug(const tree_t *tree) {
         printf("prolog[%zu] = %s\n", i, uci);
     }
 
-    for (size_t i = 0; i < hashtable_len; i++) {
-        if (tree->hashtable[i].index) printf("hashtable[%zu] = <%d, %d>\n", i, tree->hashtable[i].index, tree->hashtable[i].size);
+    if (dump_hashtable) {
+        for (size_t i = 0; i < hashtable_len; i++) {
+            if (tree->hashtable[i].index) printf("hashtable[%zu] = <%d, %d>\n", i, tree->hashtable[i].index, tree->hashtable[i].size);
+        }
     }
 }
 
@@ -331,10 +333,12 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    tree_debug(&tree);
+    tree_debug(&tree, false);
 
     tree_query(&tree);
-    tree_query(&tree);
+
+    int d = 0;
+    scanf("%d\n", &d);
 
     return EXIT_SUCCESS;
 }
