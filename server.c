@@ -45,6 +45,8 @@ typedef struct hash_entry {
     uint32_t size;
 } hash_entry_t;
 
+const size_t hashtable_len = 0x100000;
+
 typedef struct tree {
     int fd;
 
@@ -113,7 +115,7 @@ uint32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node) {
     while (tree->hashtable[bucket].index) {
         if (index == tree->hashtable[bucket].index) return tree->hashtable[bucket].size;
         bucket++;
-        if (bucket == 0x100000) bucket = 0;
+        if (bucket == hashtable_len) bucket = 0;
     }
 
     return 0;
@@ -125,7 +127,7 @@ void tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t size) {
     uint32_t bucket = compute_hash(tree_index(tree, node));
     while (tree->hashtable[bucket].index) {
         bucket++;
-        if (bucket == 0x100000) bucket = 0;
+        if (bucket == hashtable_len) bucket = 0;
     }
 
     tree->hashtable[bucket].index = tree_index(tree, node);
@@ -157,7 +159,7 @@ bool tree_open(const char *filename, tree_t *tree) {
     tree->arr = calloc(tree->size + 1, sizeof(uint64_t));
     if (!tree->arr) return false;
 
-    tree->hashtable = calloc(0x100000, sizeof(hash_entry_t));
+    tree->hashtable = calloc(hashtable_len, sizeof(hash_entry_t));
     if (!tree->hashtable) return false;
 
     uint32_t *data = (uint32_t *)(tree->nodes + tree->size - 1);
@@ -217,7 +219,7 @@ void tree_debug(const tree_t *tree) {
         printf("prolog[%zu] = %s\n", i, uci);
     }
 
-    for (size_t i = 0; i < 0x100000; i++) {
+    for (size_t i = 0; i < hashtable_len; i++) {
         if (tree->hashtable[i].index) printf("hashtable[%zu] = <%d, %d>\n", i, tree->hashtable[i].index, tree->hashtable[i].size);
     }
 }
