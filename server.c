@@ -8,12 +8,19 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-struct win_node {
+typedef struct win_node {
     uint32_t data;
     uint16_t move;
 } __attribute__((packed)) win_node_t;
 
 _Static_assert(sizeof(win_node_t) == 6, "win_node_t packed");
+
+typedef struct counted {
+    uint32_t node;
+    int32_t size;
+} __attribute__((packed)) counted_t;
+
+_Static_assert(sizeof(counted_t) == 8, "counted_t packed");
 
 typedef uint16_t move_t;
 
@@ -25,9 +32,12 @@ struct tree_info {
     move_t *prolog;
 
     size_t nodes_len;
+    win_node_t *nodes;
+
+    counted_t *counted;
 };
 
-bool open_tree(const char *filename, struct tree_info *tree) {
+bool tree_open(const char *filename, struct tree_info *tree) {
     tree->fd = open(filename, O_RDONLY);
     if (tree->fd == -1) return false;
 
@@ -41,6 +51,10 @@ bool open_tree(const char *filename, struct tree_info *tree) {
     tree->prolog = (move_t *)(tree->map + 6);
 
     tree->nodes_len = (*((uint32_t *) tree->map)) & 0x3fffffff;
+    tree->nodes = (win_node_t *)(tree->prolog + tree->prolog_len);
+
+    tree->counted = calloc(0x100000, sizeof(counted_t));
+    if (!tree->counted) return false;
 
     return true;
 }
@@ -67,18 +81,22 @@ void move_to_uci(uint16_t move, char *uci) {
     if (move & (7 << 12)) sprintf(uci + 4, "%c", promotions[move >> 12]);
 }
 
+void tree_debug(const struct tree_info *tree) {
+    printf("nodes_len = %zu (%zumb) \n", tree->nodes_len, (sizeof(win_node_t) * tree->nodes_len >> 20));
+
+    for (size_t i = 0; i < tree->prolog_len; i++) {
+        char uci[8];
+        move_to_uci(tree->prolog[i], uci);
+        printf("prolog[%zu] = %s\n", i, uci);
+    }
+}
+
 int main() {
     struct tree_info tree;
-    if (!open_tree("PROOFS/easy12.done", &tree)) {
+    if (!tree_open("PROOFS/easy12.done", &tree)) {
         printf("could not open proof tree: %s\n", strerror(errno));
         return EXIT_FAILURE;
     }
 
-    printf("nodes_len: %zu (%zumb) \n", tree.nodes_len, (sizeof(win_node_t) * tree.nodes_len >> 20));
-
-    for (int i = 0; i < tree.prolog_len; i++) {
-        char uci[8];
-        move_to_uci(tree.prolog[i], uci);
-        printf("prolog[%d] = %s\n", i, uci);
-    }
+    tree_debug(&tree);
 }
