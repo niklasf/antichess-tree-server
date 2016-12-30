@@ -265,40 +265,30 @@ static uint32_t tree_subtree_size(tree_t *tree, const node_t *node) {
     return subtree_size;
 }
 
-size_t tree_dump_children(tree_t *tree, const node_t *node) {
-    size_t num_children = 0;
-    struct query_result result[256];
+size_t tree_query(tree_t *tree, const node_t *node, query_result_t *results, size_t num_children) {
+    assert(node);
+
+    if (!node_has_child(node)) return num_children;
 
     const node_t *child = tree_next(tree, node);
 
     do {
-        result[num_children].move = child->move;
-        result[num_children].index = tree_index(tree, child);
-        result[num_children].size = tree_subtree_size(tree, child);
-        num_children++;
-    } while ((child = tree_next_sibling(tree, child)) && num_children < 256);
+        for (size_t i = 0; i < max_results; i++) {
+            if (results[i].move == 0) {
+                results[i].move = child->move;
+                results[i].size = tree_subtree_size(tree, child);
+                num_children++;
+                break;
+            } else if (results[i].move == child->move) {
+                results[i].size += tree_subtree_size(tree, child);
+                break;
+            }
+        }
+    } while ((child = tree_next_sibling(tree, child)));
 
-    qsort(result, num_children, sizeof(query_result_t), query_result_cmp);
-
-    for (size_t i = 0; i < num_children; i++) {
-        char uci[8];
-        move_to_uci(result[i].move, uci);
-        printf("  %s -> %d\n", uci, result[i].size);
-    }
+    qsort(results, num_children, sizeof(query_result_t), query_result_cmp);
 
     return num_children;
-}
-
-void tree_query(tree_t *tree) {
-    const node_t *node = tree->root;
-
-    if (!node) {
-        printf("not in book\n");
-    } else if (!node_has_child(node)) {
-        printf("no children\n");
-    } else {
-        tree_dump_children(tree, node);
-    }
 }
 
 int main(int argc, char *argv[]) {
@@ -310,10 +300,17 @@ int main(int argc, char *argv[]) {
 
     tree_debug(&tree, false);
 
-    tree_query(&tree);
+    query_result_t results[max_results] = { { 0 } };
+    size_t num_children = tree_query(&tree, tree.root, results, 0);
+    if (!num_children) {
+        printf("no children!\n");
+    }
 
-    int d = 0;
-    scanf("%d\n", &d);
+    for (size_t i = 0; i < num_children; i++) {
+        char uci[8];
+        move_to_uci(results[i].move, uci);
+        printf("  %s -> %d\n", uci, results[i].size);
+    }
 
     return EXIT_SUCCESS;
 }
