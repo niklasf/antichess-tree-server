@@ -58,6 +58,7 @@ typedef struct tree {
     node_t *nodes;
 
     hash_entry_t *hashtable;
+    size_t num_hash_entries;
 
     uint64_t *arr;
 } tree_t;
@@ -121,7 +122,12 @@ uint32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node) {
     return 0;
 }
 
-void tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t size) {
+bool tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t size) {
+    if (tree->num_hash_entries > hashtable_len / 8) {
+        // Do not fill table too much.
+        return false;
+    }
+
     while (node_is_trans(node)) node = tree_trans(tree, node);
 
     uint32_t bucket = compute_hash(tree_index(tree, node));
@@ -132,11 +138,14 @@ void tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t size) {
 
     tree->hashtable[bucket].index = tree_index(tree, node);
     tree->hashtable[bucket].size = size;
+    tree->num_hash_entries++;
 
-    if (!node_has_child(node)) return;
+    if (!node_has_child(node)) return true;
 
     if (!tree_next_sibling(tree, tree_next(tree, node)))
-        tree_save_subtree_size(tree, tree_next(tree, node), (size > 0) ? (size - 1) : 0);
+        return tree_save_subtree_size(tree, tree_next(tree, node), (size > 0) ? (size - 1) : 0);
+
+    return true;
 }
 
 bool tree_open(const char *filename, tree_t *tree) {
@@ -159,6 +168,7 @@ bool tree_open(const char *filename, tree_t *tree) {
     tree->arr = calloc(tree->size / 8 + 64, 1);
     if (!tree->arr) return false;
 
+    tree->num_hash_entries = 0;
     tree->hashtable = calloc(hashtable_len, sizeof(hash_entry_t));
     if (!tree->hashtable) return false;
 
@@ -167,7 +177,10 @@ bool tree_open(const char *filename, tree_t *tree) {
         node_t *node = tree_from_index(tree, *data++);
         if (!node) node = tree->root;
         uint32_t size = *data++;
-        if (!tree_lookup_subtree_size(tree, node)) tree_save_subtree_size(tree, node, size);
+        if (!tree_lookup_subtree_size(tree, node)) {
+            bool success = tree_save_subtree_size(tree, node, size);
+            assert(success);
+        }
     }
 
     return true;
@@ -205,7 +218,7 @@ void move_to_uci(uint16_t move, char *uci) {
     sprintf(uci, "%c%c%c%c", 'a' + (from & 7), '1' + (from >> 3),
                              'a' + (to   & 7), '1' + (to   >> 3));
 
-    const char promotions[] = "__nbrqk_";
+    const char promotions[] = "\0\0nbrqk\0";
 
     if (move & (7 << 12)) sprintf(uci + 4, "%c", promotions[move >> 12]);
 }
