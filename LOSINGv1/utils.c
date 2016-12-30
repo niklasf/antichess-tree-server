@@ -112,31 +112,4 @@ uint16 get_move (typePOS *POS, char *I)
      ((POSITION->wtm && pi==wEnumP) || (!POSITION->wtm && pi==bEnumP)))
    mv|=1<<15; return mv;}
 
-void SaveWinTree(WIN_NODE *WIN,uint16 *ML,int w,char *filename)
-{uint32 u; FILE *F; F=fopen(filename,"w");
- WIN[0].move=w; fwrite(&(WIN[0].data),4,1,F); fwrite(&(WIN[0].move),2,1,F);
- for (u=0;u<w;u++) fwrite(&(ML[u]),2,1,F);
- for (u=1;u<(WIN[0].data&0x3fffffff);u++)
- {fwrite(&(WIN[u].data),4,1,F); fwrite(&(WIN[u].move),2,1,F);} fclose(F);
- printf("Saved to %s, size %d\n",filename,(WIN[0].data&0x3fffffff));}
-
 #define SET_CHILD(A,x) (A[x].data|=(1U<<30))
-
-WIN_STRUCT* LoadWintreeFile(char *A,boolean SILENT)
-{FILE *F; WIN_STRUCT *WS; WIN_NODE *W;
- uint32 s,u,d; uint64 sz; char N[8]; char B[256]; B[0]=0;
- F=fopen(A,"rb"); if (!F) {sprintf(B,"PROOFS/%s",A); F=fopen(B,"rb");}
- if (!F) {printf("Cannot open %s\n",A); return NULL;}
- if (!SILENT) printf("Loading win-tree %s\n",B[0]?B:A);
- WS=malloc(sizeof(WIN_STRUCT)); WS->W=malloc(4096); W=WS->W;
- fread(&(W[0].data),4,1,F); fread(&(W[0].move),2,1,F);
- d=W[0].data&0x3fffffff; s=W[0].move; WS->MOVE_LIST=malloc(s*sizeof(uint16));
- for (u=0;u<s;u++) fread(&(WS->MOVE_LIST[u]),2,1,F);
- if (s && !SILENT)
- {printf("Move list:");
-  for (u=0;u<s;u++) printf(" %s",Notate(N,WS->MOVE_LIST[u])); printf("\n");}
- sz=((uint64) d)*sizeof(WIN_NODE); WS->W=realloc(WS->W,sz+65536);
- for (u=1;u<d;u++)
- {fread(&(WS->W[u].data),4,1,F); fread(&(WS->W[u].move),2,1,F);} fclose(F);
- if (!SILENT) printf("Tree size is %d [%lldmb]\n",d,sz>>20); return WS;}
-
