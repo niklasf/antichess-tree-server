@@ -13,16 +13,12 @@ typedef uint16_t move_t;
 typedef struct position {
 } position_t;
 
-typedef struct win_node {
+typedef struct node {
     uint32_t data;
     uint16_t move;
-} __attribute__((packed)) win_node_t;
+} __attribute__((packed)) node_t;
 
-_Static_assert(sizeof(win_node_t) == 6, "win_node_t packed");
-
-bool win_node_is_trans(const win_node_t *node) {
-    return !!(node->data & (1U << 31));
-}
+_Static_assert(sizeof(node_t) == 6, "node_t packed");
 
 typedef struct counted {
     uint32_t node;
@@ -38,11 +34,30 @@ struct tree_info {
     move_t *prolog;
 
     size_t size;
-    win_node_t *root;
-    win_node_t *nodes;
+    node_t *root;
+    node_t *nodes;
 
     counted_t *counted;
 };
+
+node_t *tree_node(const struct tree_info *tree, uint32_t n) {
+    if (!n) return tree->root;
+    else return tree->nodes + n;
+}
+
+bool tree_is_trans(const struct tree_info *tree, uint32_t n) {
+    return !!(tree_node(tree, n)->data & (1U << 31));
+}
+
+uint32_t tree_get_node(const struct tree_info *tree, uint32_t n) {
+    return tree_node(tree, n)->data & 0x3fffffff;
+}
+
+int32_t tree_subtree_count(const struct tree_info *tree, uint32_t n) {
+    while (tree_is_trans(tree, n)) {
+        n = tree_get_node(tree, n);
+    }
+}
 
 bool tree_open(const char *filename, struct tree_info *tree) {
     tree->fd = open(filename, O_RDONLY);
@@ -56,10 +71,10 @@ bool tree_open(const char *filename, struct tree_info *tree) {
 
     tree->prolog_len = tree->root->move;
     tree->prolog = (move_t *)(tree->root + 1);
+    tree->nodes = (node_t *)(tree->prolog + tree->prolog_len);
 
-    tree->size = tree->root->data & 0x3fffffff;
+    tree->size = tree_get_node(tree, 0);
     if (!tree->size) return false;
-    tree->nodes = (win_node_t *)(tree->prolog + tree->prolog_len);
 
     tree->counted = calloc(0x100000, sizeof(counted_t));
     if (!tree->counted) return false;
@@ -102,7 +117,7 @@ void move_to_uci(uint16_t move, char *uci) {
 }
 
 void tree_debug(const struct tree_info *tree) {
-    printf("tree size = %zu (%zumb) \n", tree->size, (sizeof(win_node_t) * tree->size >> 20));
+    printf("tree size = %zu (%zumb) \n", tree->size, (sizeof(node_t) * tree->size >> 20));
 
     for (size_t i = 0; i < tree->prolog_len; i++) {
         char uci[8];
@@ -111,9 +126,6 @@ void tree_debug(const struct tree_info *tree) {
     }
 }
 
-/*int32_t tree_subtree_count(const struct tree_info *tree) {
-    while (win_node_is_trans(tree->root[
-}*/
 
 int main(int argc, char *argv[]) {
     struct tree_info tree;
