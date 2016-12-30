@@ -1,4 +1,4 @@
-CFLAGS = -g -O3 -Wall
+CFLAGS = -g -O3 -Wall -Wno-misleading-indentation
 
 HEADERS = losing.h
 
