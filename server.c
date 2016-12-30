@@ -5,6 +5,11 @@
 #include <errno.h>
 #include <string.h>
 
+#include <event2/event.h>
+#include <event2/http.h>
+#include <event2/buffer.h>
+#include <event2/keyvalq_struct.h>
+
 #include "tree.h"
 
 static int verbose = 0;  // --verbose
@@ -12,6 +17,35 @@ static int cors = 0;     // --cors
 
 static int num_trees = 0;
 static tree_t *forest;
+
+void http_api(struct evhttp_request *req, void *data) {
+}
+
+int serve(int port) {
+    struct event_base *base = event_base_new();
+    if (!base) {
+        printf("could not initialize event_base\n");
+        abort();
+    }
+
+    struct evhttp *http = evhttp_new(base);
+    if (!http) {
+        printf("could not initialize evhttp\n");
+        abort();
+    }
+
+    evhttp_set_gencb(http, http_api, NULL);
+
+    struct evhttp_bound_socket *socket = evhttp_bind_socket_with_handle(http, "127.0.0.1", port);
+    if (!socket) {
+        printf("could not bind socket to http://127.0.0.1:%d\n", port);
+        return 1;
+    }
+
+    printf("antichess solution server listening on http://127.0.0.1:%d ...\n", port);
+
+    return event_base_dispatch(base);
+}
 
 int main(int argc, char *argv[]) {
     int port = 5004;
@@ -45,7 +79,7 @@ int main(int argc, char *argv[]) {
 
         default:
             printf("getopt error: %d\n", opt);
-            return EXIT_FAILURE;
+            abort();
         }
     }
 
@@ -66,11 +100,11 @@ int main(int argc, char *argv[]) {
         if (verbose) {
             printf("%s:\n", argv[optind]);
             tree_debug(forest + i, false);
-            printf("\n");
+            printf("---\n");
         }
 
         optind++;
     }
 
-    return EXIT_SUCCESS;
+    return serve(port);
 }
