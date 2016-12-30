@@ -43,10 +43,10 @@ typedef struct node {
 
 _Static_assert(sizeof(node_t) == 6, "node_t packed");
 
-typedef struct counted {
-    uint32_t n;
+typedef struct subtree_entry {
+    uint32_t index;
     int32_t size;
-} counted_t;
+} subtree_entry_t;
 
 typedef struct tree {
     int fd;
@@ -58,7 +58,7 @@ typedef struct tree {
     node_t *root;
     node_t *nodes;
 
-    counted_t *counted;
+    subtree_entry_t *subtrees;
 
     uint64_t *arr;
 } tree_t;
@@ -108,13 +108,13 @@ const node_t *tree_next_sibling(const tree_t *tree, const node_t *node) {
     else return node_is_trans(node) ? NULL : tree_trans_ns(tree, node);
 }
 
-int32_t tree_lookup_subtree_count(const tree_t *tree, const node_t *node) {
+int32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node) {
     while (node_is_trans(node)) node = tree_trans(tree, node);
 
     uint32_t index = tree_index(tree, node);
     uint32_t bucket = compute_hash(index);
-    while (tree->counted[bucket].n) {
-        if (index == tree->counted[bucket].n) return tree->counted[bucket].size;
+    while (tree->subtrees[bucket].index) {
+        if (index == tree->subtrees[bucket].index) return tree->subtrees[bucket].size;
         bucket++;
         if (bucket == 0x100000) bucket = 0;
     }
@@ -122,22 +122,22 @@ int32_t tree_lookup_subtree_count(const tree_t *tree, const node_t *node) {
     return 0;
 }
 
-void tree_save_subtree_count(tree_t *tree, const node_t *node, int32_t count) {
+void tree_save_subtree_size(tree_t *tree, const node_t *node, int32_t size) {
     while (node_is_trans(node)) node = tree_trans(tree, node);
 
     uint32_t bucket = compute_hash(tree_index(tree, node));
-    while (tree->counted[bucket].n) {
+    while (tree->subtrees[bucket].index) {
         bucket++;
         if (bucket == 0x100000) bucket = 0;
     }
 
-    tree->counted[bucket].n = tree_index(tree, node);
-    tree->counted[bucket].size = count;
+    tree->subtrees[bucket].index = tree_index(tree, node);
+    tree->subtrees[bucket].size = size;
 
     if (!node_has_child(node)) return;
 
     if (!tree_next_sibling(tree, tree_next(tree, node)))
-        tree_save_subtree_count(tree, tree_next(tree, node), (ABS(count) - 1) * SIGN(count));
+        tree_save_subtree_size(tree, tree_next(tree, node), (ABS(size) - 1) * SIGN(size));
 }
 
 bool tree_open(const char *filename, tree_t *tree) {
@@ -160,14 +160,14 @@ bool tree_open(const char *filename, tree_t *tree) {
     tree->arr = calloc(tree->size + 1, sizeof(uint64_t));
     if (!tree->arr) return false;
 
-    tree->counted = calloc(0x100000, sizeof(counted_t));
-    if (!tree->counted) return false;
+    tree->subtrees = calloc(0x100000, sizeof(subtree_entry_t));
+    if (!tree->subtrees) return false;
 
     uint32_t *data = (uint32_t *)(tree->nodes + tree->size - 1);
     while ((uint8_t *) data < ((uint8_t *) tree->root) + sb.st_size) {
-        node_t *node = tree_from_index(tree, *data++);
+        node_t *node = tree_from_index_with_root(tree, *data++);
         int32_t size = *((int32_t *) data++);
-        if (!tree_lookup_subtree_count(tree, node)) tree_save_subtree_count(tree, node, size);
+        if (!tree_lookup_subtree_size(tree, node)) tree_save_subtree_size(tree, node, size);
     }
 
     return true;
@@ -220,13 +220,13 @@ void tree_debug(const tree_t *tree) {
     }
 
     for (size_t i = 0; i < 0x100000; i++) {
-        if (tree->counted[i].n) printf("counted[%zu] = <%d, %d>\n", i, tree->counted[i].n, tree->counted[i].size);
+        if (tree->subtrees[i].index) printf("subtrees[%zu] = <%d, %d>\n", i, tree->subtrees[i].index, tree->subtrees[i].size);
     }
 }
 
 struct query_result {
     move_t move;
-    uint32_t n;
+    uint32_t index;
     int32_t size;
 };
 
@@ -268,9 +268,8 @@ int32_t tree_subtree_size(tree_t *tree, const node_t *node) {
 
     while (node_is_trans(node)) node = tree_trans(tree, node);
 
-    int32_t subtree_size = tree_lookup_subtree_count(tree, node);
+    int32_t subtree_size = tree_lookup_subtree_size(tree, node);
     if (subtree_size) return subtree_size;
-
 
     int32_t size = (tree->size + 63) / 64;
     memset(tree->arr, 0, sizeof(uint64_t) * size);
@@ -280,7 +279,7 @@ int32_t tree_subtree_size(tree_t *tree, const node_t *node) {
         subtree_size += popcount(tree->arr[i]);
     }
 
-    tree_save_subtree_count(tree, node, subtree_size);
+    tree_save_subtree_size(tree, node, subtree_size);
     return subtree_size;
 }
 
@@ -292,7 +291,7 @@ size_t tree_dump_children(tree_t *tree, const node_t *node) {
 
     do {
         result[num_children].move = node->move;
-        result[num_children].n = tree_index(tree, child);
+        result[num_children].index = tree_index(tree, child);
         result[num_children].size = tree_subtree_size(tree, child);
         num_children++;
     } while ((child = tree_next_sibling(tree, child)) && num_children < 256);
