@@ -156,7 +156,7 @@ bool tree_open(const char *filename, tree_t *tree) {
     tree->size = node_trans_index(tree->root);
     if (!tree->size) return false;
 
-    tree->arr = calloc(tree->size + 1, sizeof(uint64_t));
+    tree->arr = calloc(tree->size / 8 + 64, 1);
     if (!tree->arr) return false;
 
     tree->hashtable = calloc(hashtable_len, sizeof(hash_entry_t));
