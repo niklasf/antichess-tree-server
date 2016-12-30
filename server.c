@@ -8,8 +8,13 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+#define popcnt __builtin_popcountll
+
 #define ABS(x) (((x) >= 0) ? (x) : -(x))
 #define SIGN(x) (((x) > 0) ? 1 : -1)
+
+#define GET_BIT(A,x) (A[(x) >> 6] & (1ULL << ((x) & 0x3f)))
+#define SET_BIT(A,x) A[(x) >> 6] |= (1ULL << ((x) & 0x3f))
 
 uint32_t compute_hash(uint32_t n) {
     uint32_t k = n * n;
@@ -36,9 +41,7 @@ _Static_assert(sizeof(node_t) == 6, "node_t packed");
 typedef struct counted {
     uint32_t n;
     int32_t size;
-} __attribute__((packed)) counted_t;
-
-_Static_assert(sizeof(counted_t) == 8, "counted_t packed");
+} counted_t;
 
 struct tree_info {
     int fd;
@@ -51,6 +54,8 @@ struct tree_info {
     node_t *nodes;
 
     counted_t *counted;
+
+    uint64_t *arr;
 };
 
 node_t *tree_node(const struct tree_info *tree, uint32_t n) {
@@ -86,7 +91,7 @@ uint32_t tree_next_sibling(const struct tree_info *tree, uint32_t n) {
     else return tree_is_trans(tree, n) ? 0 : tree_get_node_ns(tree, n);
 }
 
-int32_t tree_subtree_count(struct tree_info *tree, uint32_t n) {
+int32_t tree_subtree_count(const struct tree_info *tree, uint32_t n) {
     while (tree_is_trans(tree, n)) n = tree_get_node(tree, n);
 
     uint32_t bucket = compute_hash(n);
@@ -134,6 +139,9 @@ bool tree_open(const char *filename, struct tree_info *tree) {
     tree->size = tree_get_node(tree, 0);
     if (!tree->size) return false;
 
+    tree->arr = calloc(tree->size + 1, sizeof(uint64_t));
+    if (!tree->arr) return false;
+
     tree->counted = calloc(0x100000, sizeof(counted_t));
     if (!tree->counted) return false;
 
@@ -145,6 +153,19 @@ bool tree_open(const char *filename, struct tree_info *tree) {
     }
 
     return true;
+}
+
+uint32_t tree_move(const struct tree_info *tree, move_t move, uint32_t n) {
+    if (n == -1) return -1;
+    if (!tree_has_child(tree, n)) return -1;
+
+    uint32_t child = n + 1;
+
+    do {
+        if (tree_node(tree, child)->move == move) return child;
+    } while ((child = tree_next_sibling(tree, child)));
+
+    return -1;
 }
 
 void move_to_uci(uint16_t move, char *uci) {
@@ -182,6 +203,114 @@ void tree_debug(const struct tree_info *tree) {
     }
 }
 
+struct query_result {
+    move_t move;
+    uint32_t n;
+    int32_t size;
+};
+
+bool VV(move_t move) {
+    uint16_t k = move >> 12;
+    return move == 0xfedc || (k != 7 && k < 9);
+}
+
+bool tree_is_unsolved(const struct tree_info *tree, uint32_t n) {
+    if (tree_get_node(tree, n) == 0x3fffffff) return true;
+    return !VV(tree_node(tree, n)->move);
+}
+
+void tree_walk(struct tree_info *tree, uint32_t n, bool Transpositions, bool *unwon) {
+    if (tree_is_unsolved(tree, n)) {
+        *unwon = true;
+        return;
+    }
+
+    if (Transpositions) {
+        if (GET_BIT(tree->arr, n)) return;
+        SET_BIT(tree->arr, n);
+    }
+
+    if (tree_is_trans(tree, n)) {
+        tree_walk(tree, tree_get_node(tree, n), Transpositions, unwon);
+        return;
+    }
+
+    if (!Transpositions) {
+        if (GET_BIT(tree->arr, n)) return;
+        SET_BIT(tree->arr, n);
+    }
+
+    if (!tree_has_child(tree, n)) return;
+
+    uint32_t child = n + 1;
+    do {
+        tree_walk(tree, child, Transpositions, unwon);
+    } while ((child = tree_next_sibling(tree, child)));
+}
+
+uint32_t tree_subtree_size(const struct tree_info *tree, uint32_t n) {
+    uint32_t sz = tree->size;
+    if (!n) return sz;
+
+    sz = (sz + 63) / 64;
+    if (tree_is_unsolved(tree, n)) return -1;
+
+    while (tree_is_trans(tree, n)) n = tree_get_node(tree, n);
+
+    uint32_t s = tree_subtree_count(tree, n);
+    if (s) return s;
+
+    bool unwon = false;
+    memset(tree->arr, 0, sizeof(uint64_t) * sz);
+
+    tree_walk(tree, n, false, &unwon);
+
+    uint32_t sum = 0;
+    for (size_t i = 0; i < sz; i++) {
+        sum += popcnt(tree->arr[i]);
+    }
+
+    if (unwon) sum = -sum;
+
+    tree_do_subtree_count(tree, n, sum);
+    return sum;
+}
+
+size_t tree_dump_children(const struct tree_info *tree, uint32_t n) {
+    size_t num_children = 0;
+    struct query_result result[256];
+
+    uint32_t child = n + 1;
+
+    do {
+        node_t *node = tree_node(tree, child);
+        result[num_children].move = node->move;
+        result[num_children].n = child;
+        result[num_children].size = tree_subtree_size(tree, child);
+        num_children++;
+    } while ((child = tree_next_sibling(tree, child)) && num_children < 256);
+
+    for (int i = 0; i < num_children; i++) {
+        char uci[8];
+        move_to_uci(result[i].move, uci);
+        printf("  %s -> %d\n", uci, result[i].size);
+    }
+
+    return num_children;
+}
+
+void tree_query(const struct tree_info *tree) {
+    uint32_t n = 0;
+    while (tree_is_trans(tree, n)) n = tree_get_node(tree, n);
+
+    if (n != -1 && tree_has_child(tree, n)) {
+        printf("output children\n");
+        tree_dump_children(tree, n);
+    } else {
+        printf("no children\n");
+    }
+}
+
 
 int main(int argc, char *argv[]) {
     struct tree_info tree;
@@ -191,6 +320,9 @@ int main(int argc, char *argv[]) {
     }
 
     tree_debug(&tree);
+
+    //align_node(tree, NULL);
+    tree_query(&tree);
 
     return EXIT_SUCCESS;
 }
