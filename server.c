@@ -191,6 +191,20 @@ void move_to_uci(uint16_t move, char *uci) {
     if (move & (7 << 12)) sprintf(uci + 4, "%c", promotions[move >> 12]);
 }
 
+move_t move_parse(const char *uci) {
+    const char promotions[] = "\0pnbrqk";
+
+    if (strlen(uci) > 5 || strlen(uci) < 4) return 0;
+
+    move_t move = (uci[2] - 'a') + ((uci[3] - '1') << 3) + ((uci[0] - 'a') << 6) + ((uci[1] - '1') << 9);
+
+    if (uci[4]) {
+        for (int k = 2; k <= 6; k++) if (uci[4] == promotions[k]) move |= k << 12;
+    }
+
+    return move;
+}
+
 void tree_debug(const tree_t *tree, bool dump_hashtable) {
     printf("tree size = %u (%zumb) \n", tree->size, (sizeof(node_t) * tree->size >> 20));
 
@@ -300,17 +314,32 @@ int main(int argc, char *argv[]) {
 
     tree_debug(&tree, false);
 
-    query_result_t results[max_results] = { { 0 } };
-    size_t num_children = tree_query(&tree, tree.root, results, 0);
-    if (!num_children) {
-        printf("no children!\n");
-    }
+    query_result_t results[max_results];
+    const node_t *node = tree.root;
 
-    for (size_t i = 0; i < num_children; i++) {
-        char uci[8];
-        move_to_uci(results[i].move, uci);
-        printf("  %s -> %d\n", uci, results[i].size);
-    }
+    do {
+        memset(results, 0, sizeof(query_result_t) * max_results);
+        size_t num_children = tree_query(&tree, node, results, 0);
+        if (!num_children) {
+            printf("no children!\n");
+        }
+
+        for (size_t i = 0; i < num_children; i++) {
+            char uci[8];
+            move_to_uci(results[i].move, uci);
+            printf("  %s -> %d\n", uci, results[i].size);
+        }
+
+        char input[8];
+        printf("move: ");
+        scanf("%7s", input);
+        move_t move = move_parse(input);
+        if (!move) {
+            printf("could not parse move");
+        }
+
+        node = tree_move(&tree, move, node);
+    } while (true);
 
     return EXIT_SUCCESS;
 }
