@@ -236,13 +236,13 @@ static int query_result_cmp(const void *a, const void *b) {
     return (ra->size > rb->size) ? -1 : (ra->size < rb->size);
 }
 
-void tree_walk(tree_t *tree, const node_t *node, bool Transpositions) {
+void tree_walk(tree_t *tree, const node_t *node, bool transpositions) {
     uint32_t index = tree_index(tree, node);
     uint16_t k = node->move >> 12;
     assert(node_trans_index(node) != 0x3fffffff);
     assert(node->move == 0xfedc || (k != 7 && k < 9));
 
-    if (Transpositions) {
+    if (transpositions) {
         if (arr_get_bit(tree->arr, index)) return;
         arr_set_bit(tree->arr, index);
     }
@@ -252,7 +252,7 @@ void tree_walk(tree_t *tree, const node_t *node, bool Transpositions) {
         return;
     }
 
-    if (!Transpositions) {
+    if (!transpositions) {
         if (arr_get_bit(tree->arr, index)) return;
         arr_set_bit(tree->arr, index);
     }
