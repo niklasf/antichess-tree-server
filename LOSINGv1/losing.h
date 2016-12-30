@@ -166,8 +166,8 @@ void final_sort_children(PN_NODE *tree,uint32 node);
 void sort_children(PN_NODE *tree,uint32 node);
 void ensure_first_child(PN_NODE *tree,uint32 node);
 
-typedef struct {uint32 data; uint16 move;} WIN_NODE; // 6 bytes
-typedef struct {WIN_NODE* W; uint16 *MOVE_LIST;} WIN_STRUCT; // 6 bytes
+typedef struct {uint32 data; uint16 move;} __attribute__((packed)) WIN_NODE; // 6 bytes
+typedef struct {WIN_NODE* W; uint16 *MOVE_LIST;} WIN_STRUCT;
 // iwin_tree.c, used by pn_search to make a wintree (no trans probs)
 typedef struct {uint64 key; uint32 node;} tTRANS;
 typedef struct
