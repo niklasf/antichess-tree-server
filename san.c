@@ -160,7 +160,12 @@ void board_move(board_t *board, move_t move) {
 }
 
 bool board_is_game_over(const board_t *board) {
-    return false;
+    if (!board->occupied_co[kBlack] || !board->occupied_co[kWhite]) return true;
+
+    // no stalemate without pawns
+    if (!board->occupied[kPawn]) return false;
+
+    return true;
 }
 
 void board_san(board_t *board, move_t move, char *san) {
@@ -188,6 +193,25 @@ void board_san(board_t *board, move_t move, char *san) {
     if (move_promotion(move)) {
         *san++ = '=';
         *san++ = PCHR[move_promotion(move)];
+    } else {
+        uint64_t candidates = 0;
+        if (pt == kKing) candidates = attacks_sliding(KING_DELTAS, to, board->occupied[kAll]);
+        if (pt == kKnight) candidates = attacks_sliding(KNIGHT_DELTAS, to, board->occupied[kAll]);
+        if (pt == kRook || pt == kQueen) candidates |= attacks_sliding(ROOK_DELTAS, to, board->occupied[kAll]);
+        if (pt == kBishop || pt == kQueen) candidates |= attacks_sliding(BISHOP_DELTAS, to, board->occupied[kAll]);
+        candidates &= board->occupied[pt] & board->occupied_co[board->turn];
+
+        bool rank = false, file = false;
+        while (candidates) {
+            uint8_t square = bb_poplsb(&candidates);
+            if (square == from) continue;
+            if (square_rank(from) == square_rank(square)) file = true;
+            if (square_file(from) == square_file(square)) rank = true;
+            else file = true;
+        }
+
+        if (file) *san++ = 'a' + square_file(from);
+        if (rank) *san++ = '1' + square_rank(from);
     }
 
     board_t board_after = *board;

@@ -2,9 +2,21 @@
 #define SAN_H_
 
 #include <stdint.h>
+#include <assert.h>
 
-static inline int popcount(uint64_t b) {
-    return __builtin_popcountll(b);
+static inline int bb_popcount(uint64_t bb) {
+    return __builtin_popcountll(bb);
+}
+
+static inline uint8_t bb_lsb(uint64_t bb) {
+    assert(bb);
+    return __builtin_ctzll(bb);
+}
+
+static inline uint8_t bb_poplsb(uint64_t *bb) {
+    uint8_t sq = bb_lsb(*bb);
+    *bb &= *bb - 1;
+    return sq;
 }
 
 typedef enum {

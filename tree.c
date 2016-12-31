@@ -253,7 +253,7 @@ static uint32_t tree_subtree_size(tree_t *tree, const node_t *node) {
     tree_walk(tree, node, false);
 
     for (uint32_t i = 0; i < size; i++) {
-        subtree_size += popcount(tree->arr[i]);
+        subtree_size += bb_popcount(tree->arr[i]);
     }
 
     tree_save_subtree_size(tree, node, subtree_size);
