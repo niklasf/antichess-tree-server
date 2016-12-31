@@ -278,7 +278,23 @@ static uint32_t tree_subtree_size(tree_t *tree, const node_t *node) {
     return subtree_size;
 }
 
-size_t tree_query(tree_t *tree, const node_t *node, query_result_t *results, size_t num_children) {
+static size_t query_results_add(query_result_t *results, size_t num_children, move_t move, uint32_t size) {
+    for (size_t i = 0; i < MAX_RESULTS; i++) {
+        if (results[i].move == 0) {
+            results[i].move = move;
+            results[i].size = size;
+            num_children++;
+            break;
+        } else if (results[i].move == move) {
+            results[i].size += size;
+            break;
+        }
+    }
+
+    return num_children;
+}
+
+static size_t tree_query_children(tree_t *tree, query_result_t *results, size_t num_children, const node_t *node) {
     assert(node);
 
     if (!node_has_child(node)) return num_children;
@@ -286,20 +302,32 @@ size_t tree_query(tree_t *tree, const node_t *node, query_result_t *results, siz
     const node_t *child = tree_next(tree, node);
 
     do {
-        for (size_t i = 0; i < MAX_RESULTS; i++) {
-            if (results[i].move == 0) {
-                results[i].move = child->move;
-                results[i].size = tree_subtree_size(tree, child);
-                num_children++;
-                break;
-            } else if (results[i].move == child->move) {
-                results[i].size += tree_subtree_size(tree, child);
-                break;
-            }
-        }
+        num_children = query_results_add(results, num_children, child->move, tree_subtree_size(tree, child));
     } while ((child = tree_next_sibling(tree, child)));
 
     qsort(results, num_children, sizeof(query_result_t), query_result_cmp);
 
     return num_children;
+}
+
+size_t tree_query(tree_t *tree, query_result_t *results, size_t num_children, const move_t *moves, size_t moves_len) {
+    if (tree->prolog_len > moves_len) {
+        for (size_t i = 0; i < moves_len; i++) {
+            if (tree->prolog[i] != moves[i]) return num_children;
+        }
+
+        return query_results_add(results, num_children, tree->prolog[moves_len], tree->size + tree->prolog_len - moves_len);
+    }
+
+    for (size_t i = 0; i < tree->prolog_len; i++) {
+        if (tree->prolog[i] != moves[i]) return num_children;
+    }
+
+    const node_t *node = tree->root;
+    for (size_t i = tree->prolog_len; i < moves_len; i++) {
+        node = tree_move(tree, moves[i], node);
+        if (!node) return num_children;
+    }
+
+    return tree_query_children(tree, results, num_children, node);
 }

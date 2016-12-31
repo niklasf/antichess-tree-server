@@ -57,10 +57,10 @@ void http_api(struct evhttp_request *req, void *data) {
     }
 
     move_t moves[MAX_MOVES];
-    size_t num_moves = 0;
+    size_t moves_len = 0;
 
     char *token = strtok(move_buf, ", ");
-    while (token && num_moves < MAX_MOVES) {
+    while (token && moves_len < MAX_MOVES) {
         move_t move = move_parse(token);
         if (!move) {
             free(move_buf);
@@ -68,14 +68,14 @@ void http_api(struct evhttp_request *req, void *data) {
             return;
         }
 
-        moves[num_moves++] = move;
+        moves[moves_len++] = move;
 
         token = strtok(NULL, ", ");
     }
 
     free(move_buf);
 
-    if (num_moves >= MAX_MOVES) {
+    if (moves_len >= MAX_MOVES) {
         evhttp_send_error(req, HTTP_BADREQUEST, "Too many moves");
         return;
     }
@@ -83,13 +83,13 @@ void http_api(struct evhttp_request *req, void *data) {
     if (verbose) {
         printf("query:");
 
-        for (int j = 0; j < num_moves; j++) {
+        for (int j = 0; j < moves_len; j++) {
             char uci[MAX_UCI];
             move_to_uci(moves[j], uci);
             printf(" %s", uci);
         }
 
-        if (!num_moves) printf(" <root>");
+        if (!moves_len) printf(" <root>");
         printf("\n");
     }
 
@@ -97,52 +97,8 @@ void http_api(struct evhttp_request *req, void *data) {
     memset(results, 0, sizeof(query_result_t) * MAX_RESULTS);
     size_t num_children = 0;
 
-    const move_t E2E3 = move_parse("e2e3");
-    const move_t C7C5 = move_parse("c7c5");
-    const move_t B7B6 = move_parse("b7b6");
-
-    if (num_moves == 0) {
-        results[0].move = E2E3;
-        results[0].size = 228501054 + 2 + 491933802 + 2;
-        num_children++;
-    } else if (moves[0] == E2E3) {
-        if (num_moves == 1) {
-            results[0].move = C7C5;
-            results[0].size = 228501054 + 2;
-            results[1].move = B7B6;
-            results[1].size = 491933802 + 2;
-            num_children += 2;
-        } else if (num_moves == 2 && moves[1] == C7C5) {
-            results[0].move = move_parse("f1b5");
-            results[0].size = 228501054 + 1;
-            num_children++;
-        } else if (num_moves == 2 && moves[1] == B7B6) {
-            results[0].move = move_parse("a2a4");
-            results[0].size = 491933802 + 1;
-            num_children++;
-        }
-    }
-
     for (int i = 0; i < num_trees; i++) {
-        tree_t *tree = forest + i;
-
-        bool prolog_matches = true;
-        if (tree->prolog_len > num_moves) prolog_matches = false;
-        for (int j = 0; j < tree->prolog_len && prolog_matches; j++) {
-            if (tree->prolog[j] != moves[j]) prolog_matches = false;
-        }
-
-        if (!prolog_matches) continue;
-
-        const node_t *node = tree->root;
-        for (int j = tree->prolog_len; j < num_moves; j++) {
-            node = tree_move(tree, moves[j], node);
-            if (!node) break;
-        }
-
-        if (node) {
-            num_children = tree_query(tree, node, results, num_children);
-        }
+        num_children = tree_query(forest + i, results, num_children, moves, moves_len);
     }
 
     evhttp_add_header(headers, "Content-Type", "application/json");

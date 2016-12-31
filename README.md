@@ -77,7 +77,6 @@ TODO
 
 * Fix en passant
 * Render standard algebraic notation
-* Do not hardcode initial values
 
 Acknowledgements
 ----------------
