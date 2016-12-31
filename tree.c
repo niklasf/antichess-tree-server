@@ -45,6 +45,27 @@ static uint32_t tree_index(const tree_t *tree, const node_t *node) {
     else return node - tree->nodes + 1;
 }
 
+static move_t node_move(const node_t *node) {
+    // 76543210 76543210
+    //            111111 from
+    //     1111 11       to
+    // 01110000 00000000 7 << 12
+    // 11110000 00000000 0xf000
+    // 10000000 00000000 ep
+    // 01111111 11111111 0x7fff
+
+    uint16_t move = node->move;
+    if (move == 0xfedc || move == 0xedc) return 0;
+
+    //  hack for unsolved proof
+    if ((move >> 12) > 8 || (move >> 12) == 7) move ^= 0xf000;
+
+    // strip ep mask
+    move &= 0x7fff;
+
+    return move;
+}
+
 static bool node_is_trans(const node_t *node) {
     return (node->data & (1U << 31)) == (1U << 31);
 }
@@ -160,7 +181,7 @@ const node_t *tree_move(const tree_t *tree, move_t move, const node_t *node) {
     const node_t *child = tree_next(tree, node);
 
     do {
-        if (child->move == move) {
+        if (node_move(child) == move) {
             while (node_is_trans(child)) child = tree_trans(tree, child);
             return child;
         }
@@ -170,17 +191,13 @@ const node_t *tree_move(const tree_t *tree, move_t move, const node_t *node) {
 }
 
 void move_to_uci(uint16_t move, char *uci) {
-    if (move == 0xfedc || move == 0xedc) {
-        // d7 to e3
+    if (!move) {
         sprintf(uci, "(none)");
         return;
     }
 
     int from = (move >> 6) & 077;
     int to = move & 077;
-
-    // hack for unsolved proof
-    if ((move >> 12) > 8 || (move >> 12) == 7) move ^= 0xf000;
 
     sprintf(uci, "%c%c%c%c", 'a' + (from & 7), '1' + (from >> 3),
                              'a' + (to   & 7), '1' + (to   >> 3));
@@ -198,7 +215,14 @@ move_t move_parse(const char *uci) {
     move_t move = (uci[2] - 'a') + ((uci[3] - '1') << 3) + ((uci[0] - 'a') << 6) + ((uci[1] - '1') << 9);
 
     if (uci[4]) {
-        for (int k = 2; k <= 6; k++) if (uci[4] == promotions[k]) move |= k << 12;
+        for (int k = 2; k <= 6; k++) {
+            if (uci[4] == promotions[k]) {
+                move |= k << 12;
+                return move;
+            }
+        }
+
+        return 0;
     }
 
     return move;
@@ -302,7 +326,7 @@ static size_t tree_query_children(tree_t *tree, query_result_t *results, size_t 
     const node_t *child = tree_next(tree, node);
 
     do {
-        num_children = query_results_add(results, num_children, child->move, tree_subtree_size(tree, child));
+        num_children = query_results_add(results, num_children, node_move(child), tree_subtree_size(tree, child));
     } while ((child = tree_next_sibling(tree, child)));
 
     qsort(results, num_children, sizeof(query_result_t), query_result_cmp);

@@ -75,7 +75,6 @@ plain text in the POST body. Space or comma seperated.
 TODO
 ----
 
-* Fix en passant
 * Render standard algebraic notation
 
 Acknowledgements
