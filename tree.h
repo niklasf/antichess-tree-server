@@ -41,8 +41,6 @@ typedef struct query_result {
     uint32_t size;
 } query_result_t;
 
-static const size_t MAX_RESULTS = 256;
-
 void move_to_uci(uint16_t move, char *uci);
 move_t move_parse(const char *uci);
 

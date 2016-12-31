@@ -261,7 +261,7 @@ static uint32_t tree_subtree_size(tree_t *tree, const node_t *node) {
 }
 
 static size_t query_results_add(query_result_t *results, size_t num_children, move_t move, uint32_t size) {
-    for (size_t i = 0; i < MAX_RESULTS; i++) {
+    for (size_t i = 0; i < MAX_LEGAL_MOVES; i++) {
         if (results[i].move == 0) {
             results[i].move = move;
             results[i].size = size;

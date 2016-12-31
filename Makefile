@@ -9,5 +9,5 @@ server.o: server.c tree.h san.h
 tree.o: tree.c tree.h san.h
 	$(CC) $(CFLAGS) -c tree.c
 
-san.o: san.h
+san.o: san.c san.h
 	$(CC) $(CFLAGS) -c san.c

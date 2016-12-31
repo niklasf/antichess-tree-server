@@ -56,6 +56,8 @@ void http_api(struct evhttp_request *req, void *data) {
         move_buf = strdup("");
     }
 
+    board_t board;
+    board_reset(&board);
     move_t moves[MAX_MOVES];
     size_t moves_len = 0;
 
@@ -69,6 +71,7 @@ void http_api(struct evhttp_request *req, void *data) {
         }
 
         moves[moves_len++] = move;
+        board_move(&board, move);
 
         token = strtok(NULL, ", ");
     }
@@ -93,8 +96,8 @@ void http_api(struct evhttp_request *req, void *data) {
         printf("\n");
     }
 
-    query_result_t results[MAX_RESULTS];
-    memset(results, 0, sizeof(query_result_t) * MAX_RESULTS);
+    query_result_t results[MAX_LEGAL_MOVES];
+    memset(results, 0, sizeof(query_result_t) * MAX_LEGAL_MOVES);
     size_t num_children = 0;
 
     for (int i = 0; i < num_trees; i++) {
