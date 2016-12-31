@@ -72,11 +72,6 @@ plain text in the POST body. Space or comma seperated.
 }
 ```
 
-TODO
-----
-
-* Render standard algebraic notation
-
 Acknowledgements
 ----------------
 

@@ -7,6 +7,10 @@
 
 #define BB_SQUARE(sq) (1ULL << (sq))
 
+#define BB_ALL    0xffffffffffffffffULL
+#define BB_FILE_A 0x0101010101010101ULL
+#define BB_FILE_H 0x8080808080808080ULL
+
 static const char PCHR[] = "\0PNBRQK";
 
 static inline int square_file(uint8_t square) {
@@ -162,8 +166,36 @@ void board_move(board_t *board, move_t move) {
 bool board_is_game_over(const board_t *board) {
     if (!board->occupied_co[kBlack] || !board->occupied_co[kWhite]) return true;
 
-    // no stalemate without pawns
-    if (!board->occupied[kPawn]) return false;
+    uint64_t us = board->occupied_co[board->turn];
+
+    uint64_t pawn_attacks = 0, pawn_moves;
+    if (board->turn == kWhite) {
+        pawn_attacks |= ((board->occupied[kPawn] & us) << 7) & ~BB_FILE_H;
+        pawn_attacks |= ((board->occupied[kPawn] & us) << 9) & ~BB_FILE_A;
+        pawn_moves = (board->occupied[kPawn] & us) << 8;
+    } else {
+        pawn_attacks |= ((board->occupied[kPawn] & us) >> 9) & ~BB_FILE_H;
+        pawn_attacks |= ((board->occupied[kPawn] & us) >> 7) & ~BB_FILE_A;
+        pawn_moves = (board->occupied[kPawn] & us) >> 8;
+    }
+    if (pawn_attacks & board->occupied_co[!board->turn]) return false;
+    if (board->ep_square && pawn_attacks & BB_SQUARE(board->ep_square)) return false;
+    if (pawn_moves & ~board->occupied[kAll]) return false;
+
+    uint64_t knights = board->occupied[kKnight] & us;
+    while (knights) {
+        if (attacks_sliding(KNIGHT_DELTAS, bb_poplsb(&knights), BB_ALL) & ~us) return false;
+    }
+
+    uint64_t diagonal = (board->occupied[kBishop] | board->occupied[kQueen] | board->occupied[kKing]) & us;
+    while (diagonal) {
+        if (attacks_sliding(BISHOP_DELTAS, bb_poplsb(&diagonal), board->occupied[kAll]) & ~us) return false;
+    }
+
+    uint64_t straight = (board->occupied[kRook] | board->occupied[kQueen] | board->occupied[kKing]) & us;
+    while (straight) {
+        if (attacks_sliding(ROOK_DELTAS, bb_poplsb(&straight), board->occupied[kAll]) & ~us) return false;
+    }
 
     return true;
 }
@@ -196,7 +228,7 @@ void board_san(board_t *board, move_t move, char *san) {
     } else {
         uint64_t candidates = 0;
         if (pt == kKing) candidates = attacks_sliding(KING_DELTAS, to, board->occupied[kAll]);
-        if (pt == kKnight) candidates = attacks_sliding(KNIGHT_DELTAS, to, board->occupied[kAll]);
+        if (pt == kKnight) candidates = attacks_sliding(KNIGHT_DELTAS, to, BB_ALL);
         if (pt == kRook || pt == kQueen) candidates |= attacks_sliding(ROOK_DELTAS, to, board->occupied[kAll]);
         if (pt == kBishop || pt == kQueen) candidates |= attacks_sliding(BISHOP_DELTAS, to, board->occupied[kAll]);
         candidates &= board->occupied[pt] & board->occupied_co[board->turn];
