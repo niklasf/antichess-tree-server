@@ -29,8 +29,10 @@ void http_api(struct evhttp_request *req, void *data) {
 
     struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
     if (cors) {
-        // TODO: Preflight
         evhttp_add_header(headers, "Access-Control-Allow-Origin", "*");
+        evhttp_add_header(headers, "Access-Control-Allow-Headers", "*");
+        evhttp_add_header(headers, "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        evhttp_add_header(headers, "Access-Control-Max-Age", "86400");
     }
 
     struct evkeyvalq query;
