@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef uint16_t move_t;
+#include "san.h"
 
 typedef struct node {
     uint32_t data;
@@ -43,7 +43,6 @@ typedef struct query_result {
 
 static const size_t MAX_RESULTS = 256;
 
-static const size_t MAX_UCI = 8;
 void move_to_uci(uint16_t move, char *uci);
 move_t move_parse(const char *uci);
 
