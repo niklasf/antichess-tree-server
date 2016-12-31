@@ -59,7 +59,7 @@ void http_api(struct evhttp_request *req, void *data) {
     move_t moves[MAX_MOVES];
     size_t num_moves = 0;
 
-    char *token = strtok(move_buf, " ");
+    char *token = strtok(move_buf, ", ");
     while (token && num_moves < MAX_MOVES) {
         move_t move = move_parse(token);
         if (!move) {
@@ -70,7 +70,7 @@ void http_api(struct evhttp_request *req, void *data) {
 
         moves[num_moves++] = move;
 
-        token = strtok(NULL, " ");
+        token = strtok(NULL, ", ");
     }
 
     free(move_buf);
