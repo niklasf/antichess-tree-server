@@ -156,6 +156,9 @@ int serve(uint16_t port) {
 }
 
 int main(int argc, char *argv[]) {
+    fclose(stdin);
+    setlinebuf(stdout);
+
     uint16_t port = 5004;
 
     static struct option long_options[] = {
