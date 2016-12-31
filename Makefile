@@ -4,10 +4,8 @@ CFLAGS += -pie -fPIE
 CFLAGS += -Wl,-z,relro,-z,now
 CFLAGS += -D_FORTIFY_SOURCE=2
 
-LDFLAGS += -O3
-
 antichess-tree-server: san.o tree.o server.o
-	$(CC) $(LDFLAGS) -o antichess-tree-server san.o tree.o server.o -levent
+	$(CC) $(LDFLAGS) $(CFLAGS) -o antichess-tree-server san.o tree.o server.o -levent
 
 server.o: server.c tree.h san.h
 	$(CC) $(CFLAGS) -c server.c
