@@ -1,10 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "san.h"
 
 #define BB_SQUARE(sq) (1ULL << (sq))
+
+static const char PCHR[] = "\0PNBRQK";
 
 static inline int square_file(uint8_t square) {
     return square & 7;
@@ -156,6 +159,40 @@ void board_move(board_t *board, move_t move) {
     board->turn = !board->turn;
 }
 
+bool board_is_game_over(const board_t *board) {
+    return false;
+}
+
 void board_san(board_t *board, move_t move, char *san) {
-    move_uci(move, san);
+    uint8_t from = move_from(move);
+    uint8_t to = move_to(move);
+    piece_type_t pt = board_piece_type_at(board, from);
+
+    if (!move || !pt) {
+        sprintf(san, "--");
+        return;
+    }
+
+    if (pt == kPawn) {
+        if (square_file(from) != square_file(to)) {
+            *san++ = 'a' + square_file(from);
+            *san++ = 'x';
+        }
+    } else {
+        *san++ = PCHR[pt];
+    }
+
+    *san++ = 'a' + square_file(to);
+    *san++ = '1' + square_rank(to);
+
+    if (move_promotion(move)) {
+        *san++ = '=';
+        *san++ = PCHR[move_promotion(move)];
+    }
+
+    board_t board_after = *board;
+    board_move(&board_after, move);
+    if (board_is_game_over(&board_after)) *san++ = '#';
+
+    *san++ = 0;
 }
