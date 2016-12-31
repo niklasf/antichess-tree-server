@@ -273,6 +273,8 @@ static size_t query_results_add(query_result_t *results, size_t num_children, mo
         }
     }
 
+    qsort(results, num_children, sizeof(query_result_t), query_result_cmp);
+
     return num_children;
 }
 
@@ -286,8 +288,6 @@ static size_t tree_query_children(tree_t *tree, query_result_t *results, size_t 
     do {
         num_children = query_results_add(results, num_children, node_move(child), tree_subtree_size(tree, child));
     } while ((child = tree_next_sibling(tree, child)));
-
-    qsort(results, num_children, sizeof(query_result_t), query_result_cmp);
 
     return num_children;
 }
