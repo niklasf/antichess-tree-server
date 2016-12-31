@@ -84,7 +84,14 @@ void http_api(struct evhttp_request *req, void *data) {
         if (!prolog_matches) continue;
 
         const node_t *node = tree->root;
-        num_children = tree_query(tree, node, results, num_children);
+        for (int j = tree->prolog_len; j < num_moves; j++) {
+            node = tree_move(tree, moves[j], node);
+            if (!node) break;
+        }
+
+        if (node) {
+            num_children = tree_query(tree, node, results, num_children);
+        }
     }
 
     evhttp_add_header(headers, "Content-Type", "application/json");
