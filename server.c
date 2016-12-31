@@ -41,14 +41,24 @@ void http_api(struct evhttp_request *req, void *data) {
     }
 
     move_t moves[1];
+    size_t num_moves = 0;
 
     query_result_t results[MAX_RESULTS] = { { 0 } };
-    size_t num_moves = 0;
+    size_t num_children = 0;
 
     for (int i = 0; i < num_trees; i++) {
         tree_t *tree = forest + i;
+
+        bool prolog_matches = true;
+        if (tree->prolog_len > num_moves) prolog_matches = false;
+        for (int j = 0; j < tree->prolog_len && prolog_matches; j++) {
+            if (tree->prolog[j] != moves[j]) prolog_matches = false;
+        }
+
+        if (!prolog_matches) continue;
+
         const node_t *node = tree->root;
-        num_moves = tree_query(tree, node, results, num_moves);
+        num_children = tree_query(tree, node, results, num_children);
     }
 
     evhttp_add_header(headers, "Content-Type", "application/json");
