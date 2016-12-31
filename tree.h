@@ -45,6 +45,7 @@ typedef struct query_result {
 
 static const size_t MAX_UCI = 8;
 void move_to_uci(uint16_t move, char *uci);
+move_t move_parse(const char *uci);
 
 bool node_has_child(const node_t *node);
 

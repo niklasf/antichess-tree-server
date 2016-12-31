@@ -40,12 +40,34 @@ void http_api(struct evhttp_request *req, void *data) {
         c_moves = "";
     }
 
+    const size_t MAX_MOVES = 512;
+    move_t moves[MAX_MOVES];
+    size_t num_moves = 0;
+
+    char *move_buf = strdup(c_moves);
+    char *token = strtok(move_buf, " ");
+    while (token && num_moves < MAX_MOVES) {
+        move_t move = move_parse(token);
+        if (!move) {
+            free(move_buf);
+            evhttp_send_error(req, HTTP_BADREQUEST, "Invalid move");
+            return;
+        }
+
+        moves[num_moves++] = move;
+
+        token = strtok(NULL, " ");
+    }
+    free(move_buf);
+
+    if (num_moves >= MAX_MOVES) {
+        evhttp_send_error(req, HTTP_BADREQUEST, "Too many moves");
+        return;
+    }
+
     if (verbose) {
         printf("query: %s\n", strlen(c_moves) ? c_moves : "<root>");
     }
-
-    move_t moves[1];
-    size_t num_moves = 0;
 
     query_result_t results[MAX_RESULTS] = { { 0 } };
     size_t num_children = 0;
