@@ -36,10 +36,10 @@ HTTP API
 CORS enabled if `--cors` was given. Provide `moves` as a GET parameter or as
 plain text in the POST body. Space or comma seperated.
 
-### `GET /`
+### `GET|POST /`
 
 ```
-> curl -data '' https://tablebase.lichess.org/watkins?moves=e2e3,c7c5,f1b5
+> curl -data 'e2e3,c7c5,f1b5' https://tablebase.lichess.org/watkins
 ```
 
 ```javascript
