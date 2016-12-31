@@ -31,7 +31,9 @@ typedef struct board {
 } board_t;
 
 static const size_t MAX_LEGAL_MOVES = 256;
+static const size_t MAX_SAN = 8;
 void board_reset(board_t *board);
 void board_move(board_t *board, move_t move);
+void board_san(board_t *board, move_t move, char *san);
 
 #endif

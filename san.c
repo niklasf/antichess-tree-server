@@ -155,3 +155,7 @@ void board_move(board_t *board, move_t move) {
 
     board->turn = !board->turn;
 }
+
+void board_san(board_t *board, move_t move, char *san) {
+    move_uci(move, san);
+}
