@@ -71,10 +71,10 @@ void http_api(struct evhttp_request *req, void *data) {
 
     evbuffer_add_printf(res, "{\n");
     evbuffer_add_printf(res, "  moves: [\n");
-    for (size_t i = 0; i < num_moves; i++) {
+    for (size_t i = 0; i < num_children; i++) {
         char uci[MAX_UCI];
         move_to_uci(results[i].move, uci);
-        evbuffer_add_printf(res, "    {\"uci\": \"%s\", \"nodes\": %d}%s\n", uci, results[i].size, (i < num_moves - 1) ? "," : "");
+        evbuffer_add_printf(res, "    {\"uci\": \"%s\", \"nodes\": %d}%s\n", uci, results[i].size, (i < num_children - 1) ? "," : "");
     }
     evbuffer_add_printf(res, "  ]\n");
     evbuffer_add_printf(res, "}\n");
