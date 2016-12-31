@@ -40,6 +40,10 @@ void http_api(struct evhttp_request *req, void *data) {
         c_moves = "";
     }
 
+    if (verbose) {
+        printf("query: %s\n", strlen(c_moves) ? c_moves : "<root>");
+    }
+
     move_t moves[1];
     size_t num_moves = 0;
 
