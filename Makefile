@@ -1,8 +1,8 @@
 CC = clang
 CFLAGS = -Wall -g
 
-server: tree.o server.o
-	$(CC) $(LDFLAGS) -levent -o server tree.o server.o
+antichess-tree-server: tree.o server.o
+	$(CC) $(LDFLAGS) -levent -o antichess-tree-server tree.o server.o
 
 server.o: server.c tree.h
 	$(CC) $(CFLAGS) -c server.c

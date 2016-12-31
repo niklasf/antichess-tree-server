@@ -28,7 +28,9 @@ the proof trees:
 
 Then start the server:
 
-    ./server [--verbose] [--cors] [--port 5004] easy18.done e3c5.done e3b6.proof
+    ./antichess-tree-server
+        [--verbose] [--cors] [--port 5004]
+        easy18.done e3c5.done e3b6.proof
 
 HTTP API
 --------
