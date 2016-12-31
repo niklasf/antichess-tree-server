@@ -20,7 +20,7 @@ Usage
 -----
 
 [Download](http://magma.maths.usyd.edu.au/~watkins/LOSING_CHESS/index.html)
-the proof trees:
+and `bunzip2` the proof trees:
 
 * easy18.done
 * e3c5.done
