@@ -83,14 +83,14 @@ static uint32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node)
     while (tree->hashtable[bucket].index) {
         if (index == tree->hashtable[bucket].index) return tree->hashtable[bucket].size;
         bucket++;
-        if (bucket == hashtable_len) bucket = 0;
+        if (bucket == HASHTABLE_LEN) bucket = 0;
     }
 
     return 0;
 }
 
 static bool tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t size) {
-    if (tree->num_hash_entries > hashtable_len / 8) {
+    if (tree->num_hash_entries > HASHTABLE_LEN / 8) {
         // Do not fill table too much.
         return false;
     }
@@ -100,7 +100,7 @@ static bool tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t si
     uint32_t bucket = compute_hash(tree_index(tree, node));
     while (tree->hashtable[bucket].index) {
         bucket++;
-        if (bucket == hashtable_len) bucket = 0;
+        if (bucket == HASHTABLE_LEN) bucket = 0;
     }
 
     tree->hashtable[bucket].index = tree_index(tree, node);
@@ -136,7 +136,7 @@ bool tree_open(const char *filename, tree_t *tree) {
     if (!tree->arr) return false;
 
     tree->num_hash_entries = 0;
-    tree->hashtable = calloc(hashtable_len, sizeof(hash_entry_t));
+    tree->hashtable = calloc(HASHTABLE_LEN, sizeof(hash_entry_t));
     if (!tree->hashtable) return false;
 
     uint32_t *data = (uint32_t *)(tree->nodes + tree->size - 1);
@@ -214,7 +214,7 @@ void tree_debug(const tree_t *tree, bool dump_hashtable) {
     }
 
     if (dump_hashtable) {
-        for (size_t i = 0; i < hashtable_len; i++) {
+        for (size_t i = 0; i < HASHTABLE_LEN; i++) {
             if (tree->hashtable[i].index) printf("hashtable[%zu] = <%d, %d>\n", i, tree->hashtable[i].index, tree->hashtable[i].size);
         }
     }
@@ -286,7 +286,7 @@ size_t tree_query(tree_t *tree, const node_t *node, query_result_t *results, siz
     const node_t *child = tree_next(tree, node);
 
     do {
-        for (size_t i = 0; i < max_results; i++) {
+        for (size_t i = 0; i < MAX_RESULTS; i++) {
             if (results[i].move == 0) {
                 results[i].move = child->move;
                 results[i].size = tree_subtree_size(tree, child);
