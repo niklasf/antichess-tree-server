@@ -44,8 +44,6 @@ typedef struct query_result {
 void move_to_uci(uint16_t move, char *uci);
 move_t move_parse(const char *uci);
 
-bool node_has_child(const node_t *node);
-
 bool tree_open(const char *filename, tree_t *tree);
 void tree_debug(const tree_t *tree, bool dump_hashtable);
 const node_t *tree_move(const tree_t *tree, move_t move, const node_t *node);

@@ -114,7 +114,7 @@ void board_reset(board_t *board) {
     board->ep_square = 0;
 }
 
-piece_type_t board_piece_type_at(const board_t *board, uint8_t square) {
+static piece_type_t board_piece_type_at(const board_t *board, uint8_t square) {
     uint64_t bb = BB_SQUARE(square);
     for (piece_type_t pt = kPawn; pt <= kKing; pt++) {
         if (board->occupied[pt] & bb) return pt;

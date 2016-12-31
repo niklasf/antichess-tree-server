@@ -62,19 +62,19 @@ static move_t node_move(const node_t *node) {
     return move;
 }
 
-static bool node_is_trans(const node_t *node) {
+static inline bool node_is_trans(const node_t *node) {
     return (node->data & (1U << 31)) == (1U << 31);
 }
 
-static bool node_trans_and_sibling(const node_t *node) {
+static inline bool node_trans_and_sibling(const node_t *node) {
     return (node->data & (3U << 30)) == (3U << 30);
 }
 
-static uint32_t node_trans_index(const node_t *node) {
+static inline uint32_t node_trans_index(const node_t *node) {
     return node->data & 0x3fffffff;
 }
 
-bool node_has_child(const node_t *node) {
+static inline bool node_has_child(const node_t *node) {
     return ((node->data & (3U << 30)) == (1U << 30)) && ((node->data & 0x3fffffff) != 0x3fffffff);
 }
 
