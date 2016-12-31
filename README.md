@@ -72,6 +72,11 @@ plain text in the POST body. Space or comma seperated.
 }
 ```
 
+Known issues
+------------
+
+En passant probably needs to be fixed.
+
 Acknowledgements
 ----------------
 
