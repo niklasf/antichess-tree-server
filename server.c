@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (optind == argc) {
-        printf("open at least one proof tree\n");
+        printf("usage: %s [--port 5004] [--cors] [--verbose] <proof-files>\n", argv[0]);
         return 78;
     }
 
