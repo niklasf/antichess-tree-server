@@ -27,10 +27,10 @@ static int square_distance(uint8_t a, uint8_t b) {
     return (rd > fd) ? rd : fd;
 }
 
-const static int ROOK_DELTAS[] = { 8, 1, -8, -1, 0 };
-const static int BISHOP_DELTAS[] = { 9, -9, 7, -7, 0 };
-const static int KING_DELTAS[] = { 8, 1, -8, -1, 9, -9, 7, -7, 0 };
-const static int KNIGHT_DELTAS[] = { 17, 15, 10, 6, -6, -10, -15, -17, 0 };
+static const int ROOK_DELTAS[] = { 8, 1, -8, -1, 0 };
+static const int BISHOP_DELTAS[] = { 9, -9, 7, -7, 0 };
+static const int KING_DELTAS[] = { 8, 1, -8, -1, 9, -9, 7, -7, 0 };
+static const int KNIGHT_DELTAS[] = { 17, 15, 10, 6, -6, -10, -15, -17, 0 };
 
 static uint64_t attacks_sliding(const int deltas[], uint8_t square, uint64_t occupied) {
     uint64_t attack = 0;

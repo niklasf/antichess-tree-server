@@ -17,10 +17,10 @@ static const size_t MAX_MOVES = 512;
 static int verbose = 0;  // --verbose
 static int cors = 0;     // --cors
 
-static int num_trees = 0;
+static size_t num_trees = 0;
 static tree_t *forest;
 
-void http_api(struct evhttp_request *req, void *data) {
+void http_api(struct evhttp_request *req, __attribute__ ((unused)) void *data) {
     const char *uri = evhttp_request_get_uri(req);
     if (!uri) {
         printf("evhttp_request_get_uri failed\n");
@@ -86,7 +86,7 @@ void http_api(struct evhttp_request *req, void *data) {
     if (verbose) {
         printf("query:");
 
-        for (int j = 0; j < moves_len; j++) {
+        for (size_t j = 0; j < moves_len; j++) {
             char uci[MAX_UCI];
             move_uci(moves[j], uci);
             printf(" %s", uci);
@@ -100,7 +100,7 @@ void http_api(struct evhttp_request *req, void *data) {
     memset(results, 0, sizeof(query_result_t) * MAX_LEGAL_MOVES);
     size_t num_children = 0;
 
-    for (int i = 0; i < num_trees; i++) {
+    for (size_t i = 0; i < num_trees; i++) {
         num_children = tree_query(forest + i, results, num_children, moves, moves_len);
     }
 
@@ -129,7 +129,7 @@ void http_api(struct evhttp_request *req, void *data) {
     evbuffer_free(res);
 }
 
-int serve(int port) {
+int serve(uint16_t port) {
     struct event_base *base = event_base_new();
     if (!base) {
         printf("could not initialize event_base\n");
@@ -156,7 +156,7 @@ int serve(int port) {
 }
 
 int main(int argc, char *argv[]) {
-    int port = 5004;
+    uint16_t port = 5004;
 
     static struct option long_options[] = {
         {"verbose", no_argument,       &verbose, 1},
@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
     num_trees = argc - optind;
     forest = calloc(num_trees, sizeof(tree_t));
 
-    for (int i = 0; i < num_trees; i++) {
+    for (size_t i = 0; i < num_trees; i++) {
         if (!tree_open(argv[optind], forest + i)) {
             printf("could not open %s: %s\n", argv[optind], strerror(errno));
             return 78;
