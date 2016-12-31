@@ -96,6 +96,32 @@ void http_api(struct evhttp_request *req, void *data) {
     query_result_t results[MAX_RESULTS] = { { 0 } };
     size_t num_children = 0;
 
+    const move_t E2E3 = move_parse("e2e3");
+    const move_t C7C5 = move_parse("c7c5");
+    const move_t B7B6 = move_parse("b7b6");
+
+    if (num_moves == 0) {
+        results[0].move = E2E3;
+        results[0].size = 228501054 + 2 + 491933802 + 2;
+        num_children++;
+    } else if (moves[0] == E2E3) {
+        if (num_moves == 1) {
+            results[0].move = C7C5;
+            results[0].size = 228501054 + 2;
+            results[1].move = B7B6;
+            results[1].size = 491933802 + 2;
+            num_children += 2;
+        } else if (num_moves == 2 && moves[1] == C7C5) {
+            results[0].move = move_parse("f1b5");
+            results[0].size = 228501054 + 1;
+            num_children++;
+        } else if (num_moves == 2 && moves[1] == B7B6) {
+            results[0].move = move_parse("a2a4");
+            results[0].size = 491933802 + 1;
+            num_children++;
+        }
+    }
+
     for (int i = 0; i < num_trees; i++) {
         tree_t *tree = forest + i;
 
