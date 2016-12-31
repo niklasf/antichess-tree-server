@@ -12,6 +12,8 @@
 
 #include "tree.h"
 
+static const size_t MAX_MOVES = 512;
+
 static int verbose = 0;  // --verbose
 static int cors = 0;     // --cors
 
@@ -42,6 +44,7 @@ void http_api(struct evhttp_request *req, void *data) {
     if (!move_buf) {
         struct evbuffer *buf = evhttp_request_get_input_buffer(req);
         size_t body_len = evbuffer_get_length(buf);
+        if (body_len > MAX_MOVES * (MAX_UCI + 1)) body_len = MAX_MOVES * (MAX_UCI + 1);
         move_buf = malloc(body_len + 1);
         move_buf[body_len] = 0;
         evbuffer_copyout(buf, move_buf, body_len);
@@ -51,8 +54,6 @@ void http_api(struct evhttp_request *req, void *data) {
         move_buf = strdup("");
     }
 
-
-    const size_t MAX_MOVES = 512;
     move_t moves[MAX_MOVES];
     size_t num_moves = 0;
 
