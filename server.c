@@ -78,6 +78,19 @@ void http_api(struct evhttp_request *req, void *data) {
         return;
     }
 
+    if (verbose) {
+        printf("query:");
+
+        for (int j = 0; j < num_moves; j++) {
+            char uci[MAX_UCI];
+            move_to_uci(moves[j], uci);
+            printf(" %s", uci);
+        }
+
+        if (!num_moves) printf(" <root>");
+        printf("\n");
+    }
+
     query_result_t results[MAX_RESULTS] = { { 0 } };
     size_t num_children = 0;
 
