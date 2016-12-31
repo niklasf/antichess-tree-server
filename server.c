@@ -32,19 +32,30 @@ void http_api(struct evhttp_request *req, void *data) {
     }
 
     struct evkeyvalq query;
-    const char *c_moves = NULL;
+    char *move_buf = NULL;
     if (0 == evhttp_parse_query(uri, &query)) {
-        c_moves = evhttp_find_header(&query, "moves");
+        if (evhttp_find_header(&query, "moves")) {
+            move_buf = strdup(evhttp_find_header(&query, "moves"));
+        }
     }
-    if (!c_moves) {
-        c_moves = "";
+
+    if (!move_buf) {
+        struct evbuffer *buf = evhttp_request_get_input_buffer(req);
+        size_t body_len = evbuffer_get_length(buf);
+        move_buf = malloc(body_len + 1);
+        move_buf[body_len] = 0;
+        evbuffer_copyout(buf, move_buf, body_len);
     }
+
+    if (!move_buf) {
+        move_buf = strdup("");
+    }
+
 
     const size_t MAX_MOVES = 512;
     move_t moves[MAX_MOVES];
     size_t num_moves = 0;
 
-    char *move_buf = strdup(c_moves);
     char *token = strtok(move_buf, " ");
     while (token && num_moves < MAX_MOVES) {
         move_t move = move_parse(token);
@@ -58,15 +69,12 @@ void http_api(struct evhttp_request *req, void *data) {
 
         token = strtok(NULL, " ");
     }
+
     free(move_buf);
 
     if (num_moves >= MAX_MOVES) {
         evhttp_send_error(req, HTTP_BADREQUEST, "Too many moves");
         return;
-    }
-
-    if (verbose) {
-        printf("query: %s\n", strlen(c_moves) ? c_moves : "<root>");
     }
 
     query_result_t results[MAX_RESULTS] = { { 0 } };
