@@ -93,7 +93,8 @@ void http_api(struct evhttp_request *req, void *data) {
         printf("\n");
     }
 
-    query_result_t results[MAX_RESULTS] = { { 0 } };
+    query_result_t results[MAX_RESULTS];
+    memset(results, 0, sizeof(query_result_t) * MAX_RESULTS);
     size_t num_children = 0;
 
     const move_t E2E3 = move_parse("e2e3");
