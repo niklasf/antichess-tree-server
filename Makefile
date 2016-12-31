@@ -1,5 +1,4 @@
-CC = clang
-CFLAGS = -Wall -g
+CFLAGS = -Wall
 
 antichess-tree-server: tree.o server.o
 	$(CC) $(LDFLAGS) -levent -o antichess-tree-server tree.o server.o
