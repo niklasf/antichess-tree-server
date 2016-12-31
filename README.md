@@ -72,11 +72,12 @@ plain text in the POST body. Space or comma seperated.
 }
 ```
 
-Known issues
-------------
+TODO
+----
 
-* En passant probably needs to be fixed.
+* Fix en passant
 * Render standard algebraic notation
+* Do not hardcode initial values
 
 Acknowledgements
 ----------------
