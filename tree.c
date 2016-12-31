@@ -170,7 +170,7 @@ bool tree_open(const char *filename, tree_t *tree) {
     return true;
 }
 
-const node_t *tree_move(const tree_t *tree, move_t move, const node_t *node) {
+static const node_t *tree_move(const tree_t *tree, move_t move, const node_t *node) {
     if (!node) return NULL;
     if (!node_has_child(node)) return NULL;
 

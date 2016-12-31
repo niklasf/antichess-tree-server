@@ -46,7 +46,6 @@ move_t move_parse(const char *uci);
 
 bool tree_open(const char *filename, tree_t *tree);
 void tree_debug(const tree_t *tree, bool dump_hashtable);
-const node_t *tree_move(const tree_t *tree, move_t move, const node_t *node);
 size_t tree_query(tree_t *tree, query_result_t *results, size_t num_children, const move_t *moves, size_t moves_len);
 
 #endif  // #ifndef TREE_H_
