@@ -109,7 +109,7 @@ static uint32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node)
 
 static bool tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t size) {
     if (tree->num_hash_entries > HASHTABLE_LEN / 8) {
-        // Do not fill table too much.
+        // do not fill table too much
         return false;
     }
 
@@ -161,6 +161,7 @@ bool tree_open(tree_t *tree, const char *filename) {
     tree->hashtable = calloc(HASHTABLE_LEN, sizeof(hash_entry_t));
     if (!tree->hashtable) return false;
 
+    // prime hash table
     uint32_t *data = (uint32_t *)(tree->nodes + tree->size - 1);
     while ((uint8_t *) data < ((uint8_t *) tree->root) + sb.st_size) {
         node_t *node = tree_from_index(tree, *data++);
