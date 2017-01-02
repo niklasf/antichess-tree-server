@@ -123,6 +123,22 @@ static piece_type_t board_piece_type_at(const board_t *board, uint8_t square) {
     return kNone;
 }
 
+void board_debug(const board_t *board) {
+    for (int rank = 7; rank >= 0; rank--) {
+        for (int file = 0; file < 8; file++) {
+            uint8_t square = (rank << 3) | file;
+            piece_type_t pt = board_piece_type_at(board, square);
+
+            if (!pt) printf(".");
+            else if (board->occupied_co[kWhite] & BB_SQUARE(square)) printf("%c", PCHR[pt]);
+            else printf("%c", PCHR[pt] - 'A' + 'a');
+
+            if (file < 7) printf(" ");
+            else printf("\n");
+        }
+    }
+}
+
 void board_move(board_t *board, move_t move) {
     if (!move) return;
 
@@ -130,10 +146,10 @@ void board_move(board_t *board, move_t move) {
 
     uint8_t from = move_from(move);
     uint8_t to = move_to(move);
-    piece_type_t pt = board_piece_type_at(board, move_from(move));
+    piece_type_t pt = board_piece_type_at(board, from);
     if (!pt) return;
 
-    piece_type_t capture = board_piece_type_at(board, move_to(move));
+    piece_type_t capture = board_piece_type_at(board, to);
 
     board->occupied_co[board->turn] &= ~BB_SQUARE(from);
     board->occupied[kAll] &= ~BB_SQUARE(from);
@@ -217,15 +233,9 @@ void board_san(board_t *board, move_t move, char *san) {
         }
     } else {
         *san++ = PCHR[pt];
-    }
 
-    *san++ = 'a' + square_file(to);
-    *san++ = '1' + square_rank(to);
+        if (board->occupied[kAll] & BB_SQUARE(to)) *san++ = 'x';
 
-    if (move_promotion(move)) {
-        *san++ = '=';
-        *san++ = PCHR[move_promotion(move)];
-    } else {
         uint64_t candidates = 0;
         if (pt == kKing) candidates = attacks_sliding(KING_DELTAS, to, board->occupied[kAll]);
         if (pt == kKnight) candidates = attacks_sliding(KNIGHT_DELTAS, to, BB_ALL);
@@ -244,6 +254,14 @@ void board_san(board_t *board, move_t move, char *san) {
 
         if (file) *san++ = 'a' + square_file(from);
         if (rank) *san++ = '1' + square_rank(from);
+    }
+
+    *san++ = 'a' + square_file(to);
+    *san++ = '1' + square_rank(to);
+
+    if (move_promotion(move)) {
+        *san++ = '=';
+        *san++ = PCHR[move_promotion(move)];
     }
 
     board_t board_after = *board;
