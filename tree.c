@@ -260,16 +260,18 @@ void query_result_clear(query_result_t *result) {
 }
 
 static void query_result_add(query_result_t *result, move_t move, uint32_t size) {
-    for (size_t i = 0; i < MAX_LEGAL_MOVES; i++) {
-        if (result->moves[i] == 0) {
-            result->moves[i] = move;
-            result->sizes[i] = size;
-            result->num_children++;
-        } else if (result->moves[i] == move) {
+    for (size_t i = 0; i < result->num_children; i++) {
+        if (result->moves[i] == move) {
             result->sizes[i] += size;
-            break;
+            return;
         }
     }
+
+    assert(result->num_children < MAX_LEGAL_MOVES);
+
+    result->moves[result->num_children] = move;
+    result->sizes[result->num_children] = size;
+    result->num_children++;
 }
 
 void query_result_sort(query_result_t *result) {
