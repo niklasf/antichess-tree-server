@@ -200,7 +200,7 @@ static const node_t *tree_move(const tree_t *tree, move_t move, const node_t *no
 }
 
 void tree_debug(const tree_t *tree, bool dump_hashtable) {
-    printf("tree size = %u (%zumb) \n", tree->size, (sizeof(node_t) * tree->size >> 20));
+    printf("tree size = %u (%zumb) \n", tree->size, (sizeof(node_t) * tree->size) >> 20);
 
     for (size_t i = 0; i < tree->prolog_len; i++) {
         char uci[8];
