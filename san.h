@@ -34,7 +34,7 @@ typedef enum {
 
 typedef uint16_t move_t;
 
-static const size_t MAX_UCI = 8;
+#define MAX_UCI 8
 void move_uci(move_t move, char *uci);
 move_t move_parse(const char *uci);
 
@@ -46,8 +46,7 @@ typedef struct board {
     uint8_t ep_square;
 } board_t;
 
-static const size_t MAX_LEGAL_MOVES = 256;
-static const size_t MAX_SAN = 8;
+#define MAX_SAN 8
 bool board_is_game_over(const board_t *board);
 void board_reset(board_t *board);
 void board_debug(const board_t *board);

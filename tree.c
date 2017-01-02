@@ -202,11 +202,6 @@ void tree_debug(const tree_t *tree, bool dump_hashtable) {
     }
 }
 
-static int query_result_cmp(const void *a, const void *b) {
-    const query_result_t *ra = a, *rb = b;
-    return (ra->size > rb->size) ? -1 : (ra->size < rb->size);
-}
-
 static void tree_walk(tree_t *tree, const node_t *node, bool transpositions) {
     uint32_t index = tree_index(tree, node);
     uint16_t k = node->move >> 12;
@@ -260,56 +255,72 @@ static uint32_t tree_subtree_size(tree_t *tree, const node_t *node) {
     return subtree_size;
 }
 
-static size_t query_results_add(query_result_t *results, size_t num_children, move_t move, uint32_t size) {
+void query_result_clear(query_result_t *result) {
+    memset(result, 0, sizeof(query_result_t));
+}
+
+static void query_result_add(query_result_t *result, move_t move, uint32_t size) {
     for (size_t i = 0; i < MAX_LEGAL_MOVES; i++) {
-        if (results[i].move == 0) {
-            results[i].move = move;
-            results[i].size = size;
-            num_children++;
-            break;
-        } else if (results[i].move == move) {
-            results[i].size += size;
+        if (result->moves[i] == 0) {
+            result->moves[i] = move;
+            result->sizes[i] = size;
+            result->num_children++;
+        } else if (result->moves[i] == move) {
+            result->sizes[i] += size;
             break;
         }
     }
-
-    qsort(results, num_children, sizeof(query_result_t), query_result_cmp);
-
-    return num_children;
 }
 
-static size_t tree_query_children(tree_t *tree, query_result_t *results, size_t num_children, const node_t *node) {
+void query_result_sort(query_result_t *result) {
+    for (size_t i = 0; i < result->num_children; i++) {
+        for (size_t j = 0; j < result->num_children - i - 1; j++) {
+            if (result->sizes[j] > result->sizes[j + 1]) {
+                uint32_t tmp_size = result->sizes[j];
+                result->sizes[j] = result->sizes[j + 1];
+                result->sizes[j + 1] = tmp_size;
+
+                move_t tmp_move = result->moves[j];
+                result->moves[j] = result->moves[j + 1];
+                result->moves[j + 1] = tmp_move;
+            }
+        }
+    }
+}
+
+static bool tree_query_children(tree_t *tree, const node_t *node, query_result_t *result) {
     assert(node);
 
-    if (!node_has_child(node)) return num_children;
+    if (!node_has_child(node)) return false;
 
     const node_t *child = tree_next(tree, node);
 
     do {
-        num_children = query_results_add(results, num_children, node_move(child), tree_subtree_size(tree, child));
+        query_result_add(result, node_move(child), tree_subtree_size(tree, child));
     } while ((child = tree_next_sibling(tree, child)));
 
-    return num_children;
+    return true;
 }
 
-size_t tree_query(tree_t *tree, query_result_t *results, size_t num_children, const move_t *moves, size_t moves_len) {
+bool tree_query(tree_t *tree, const move_t *moves, size_t moves_len, query_result_t *result) {
     if (tree->prolog_len > moves_len) {
         for (size_t i = 0; i < moves_len; i++) {
-            if (tree->prolog[i] != moves[i]) return num_children;
+            if (tree->prolog[i] != moves[i]) return false;
         }
 
-        return query_results_add(results, num_children, tree->prolog[moves_len], tree->size + tree->prolog_len - moves_len);
+        query_result_add(result, tree->prolog[moves_len], tree->size + tree->prolog_len - moves_len);
+        return true;
     }
 
     for (size_t i = 0; i < tree->prolog_len; i++) {
-        if (tree->prolog[i] != moves[i]) return num_children;
+        if (tree->prolog[i] != moves[i]) return false;
     }
 
     const node_t *node = tree->root;
     for (size_t i = tree->prolog_len; i < moves_len; i++) {
         node = tree_move(tree, moves[i], node);
-        if (!node) return num_children;
+        if (!node) return false;
     }
 
-    return tree_query_children(tree, results, num_children, node);
+    return tree_query_children(tree, node, result);
 }

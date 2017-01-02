@@ -1,4 +1,4 @@
-CFLAGS += -O3 -Wall -Wextra -Wformat-security -pedantic
+CFLAGS += -O3 -Wall -Wextra -Wformat-security -Wstack-protector -pedantic
 CFLAGS += -fstack-protector-all --param ssp-buffer-size=4
 CFLAGS += -pie -fPIE
 CFLAGS += -Wl,-z,relro,-z,now

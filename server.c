@@ -12,7 +12,7 @@
 
 #include "tree.h"
 
-static const size_t MAX_MOVES = 512;
+#define MAX_MOVES 512
 
 static int verbose = 0;  // --verbose
 static int cors = 0;     // --cors
@@ -96,13 +96,14 @@ void http_api(struct evhttp_request *req, __attribute__ ((unused)) void *data) {
         printf("\n");
     }
 
-    query_result_t results[MAX_LEGAL_MOVES];
-    memset(results, 0, sizeof(query_result_t) * MAX_LEGAL_MOVES);
-    size_t num_children = 0;
+    query_result_t result;
+    query_result_clear(&result);
 
     for (size_t i = 0; i < num_trees; i++) {
-        num_children = tree_query(forest + i, results, num_children, moves, moves_len);
+        tree_query(forest + i, moves, moves_len, &result);
     }
+
+    query_result_sort(&result);
 
     evhttp_add_header(headers, "Content-Type", "application/json");
 
@@ -115,11 +116,11 @@ void http_api(struct evhttp_request *req, __attribute__ ((unused)) void *data) {
     evbuffer_add_printf(res, "{\n");
     evbuffer_add_printf(res, "  \"game_over\": %s,\n", board_is_game_over(&board) ? "true" : "false");
     evbuffer_add_printf(res, "  \"moves\": [\n");
-    for (size_t i = 0; i < num_children; i++) {
+    for (size_t i = 0; i < result.num_children; i++) {
         char uci[MAX_UCI], san[MAX_SAN];
-        move_uci(results[i].move, uci);
-        board_san(&board, results[i].move, san);
-        evbuffer_add_printf(res, "    {\"uci\": \"%s\", \"san\": \"%s\", \"nodes\": %d}%s\n", uci, san, results[i].size, (i < num_children - 1) ? "," : "");
+        move_uci(result.moves[i], uci);
+        board_san(&board, result.moves[i], san);
+        evbuffer_add_printf(res, "    {\"uci\": \"%s\", \"san\": \"%s\", \"nodes\": %d}%s\n", uci, san, result.sizes[i], (i < result.num_children - 1) ? "," : "");
     }
     evbuffer_add_printf(res, "  ]\n");
     evbuffer_add_printf(res, "}\n");

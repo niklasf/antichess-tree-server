@@ -36,16 +36,20 @@ typedef struct tree {
     uint64_t *arr;
 } tree_t;
 
+#define MAX_LEGAL_MOVES 256
+
 typedef struct query_result {
-    move_t move;
-    uint32_t size;
+    move_t moves[MAX_LEGAL_MOVES];
+    uint32_t sizes[MAX_LEGAL_MOVES];
+
+    size_t num_children;
 } query_result_t;
 
-void move_to_uci(uint16_t move, char *uci);
-move_t move_parse(const char *uci);
+void query_result_clear(query_result_t *result);
+void query_result_sort(query_result_t *result);
 
 bool tree_open(const char *filename, tree_t *tree);
 void tree_debug(const tree_t *tree, bool dump_hashtable);
-size_t tree_query(tree_t *tree, query_result_t *results, size_t num_children, const move_t *moves, size_t moves_len);
+bool tree_query(tree_t *tree, const move_t *moves, size_t moves_len, query_result_t *result);
 
 #endif  // #ifndef TREE_H_
