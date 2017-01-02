@@ -2,6 +2,8 @@
 #define SAN_H_
 
 #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 #include <assert.h>
 
 static inline int bb_popcount(uint64_t bb) {

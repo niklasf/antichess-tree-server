@@ -7,6 +7,14 @@ CFLAGS += -D_FORTIFY_SOURCE=2
 antichess-tree-server: san.o tree.o server.o
 	$(CC) $(LDFLAGS) $(CFLAGS) -o antichess-tree-server san.o tree.o server.o -levent
 
+.PHONY: test
+test: san.o tree.o test.o
+	$(CC) $(LDFLAGS) $(CFLAGS) -o test san.o tree.o test.o
+	./test
+
+test.o: test.c tree.h san.h
+	$(CC) $(CFLAGS) -c test.c
+
 server.o: server.c tree.h san.h
 	$(CC) $(CFLAGS) -c server.c
 
