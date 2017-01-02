@@ -1,6 +1,8 @@
 #include <assert.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -131,7 +133,7 @@ static bool tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t si
     return true;
 }
 
-bool tree_open(const char *filename, tree_t *tree) {
+bool tree_open(tree_t *tree, const char *filename) {
     tree->fd = open(filename, O_RDONLY);
     if (tree->fd == -1) return false;
 
@@ -140,6 +142,10 @@ bool tree_open(const char *filename, tree_t *tree) {
 
     tree->root = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, tree->fd, 0);
     if (tree->root == MAP_FAILED) return false;
+
+    const size_t page_size = sysconf(_SC_PAGE_SIZE);
+    tree->num_pages = sb.st_size / page_size;
+    if (sb.st_size % page_size > 0) tree->num_pages++;
 
     tree->prolog_len = tree->root->move;
     tree->prolog = (move_t *)(tree->root + 1);
@@ -167,6 +173,14 @@ bool tree_open(const char *filename, tree_t *tree) {
     }
 
     return true;
+}
+
+void tree_close(tree_t *tree) {
+    if (tree->hashtable) free(tree->hashtable);
+    if (tree->arr) free(tree->arr);
+    munmap(tree->root, tree->num_pages * sysconf(_SC_PAGE_SIZE));
+    close(tree->fd);
+    memset(tree, 0, sizeof(tree_t));
 }
 
 static const node_t *tree_move(const tree_t *tree, move_t move, const node_t *node) {

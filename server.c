@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
     forest = calloc(num_trees, sizeof(tree_t));
 
     for (size_t i = 0; i < num_trees; i++) {
-        if (!tree_open(argv[optind], forest + i)) {
+        if (!tree_open(forest + i, argv[optind])) {
             printf("could not open %s: %s\n", argv[optind], strerror(errno));
             return 78;
         }
