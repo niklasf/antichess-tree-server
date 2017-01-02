@@ -277,7 +277,7 @@ static void query_result_add(query_result_t *result, move_t move, uint32_t size)
 void query_result_sort(query_result_t *result) {
     for (size_t i = 0; i < result->num_children; i++) {
         for (size_t j = 0; j < result->num_children - i - 1; j++) {
-            if (result->sizes[j] > result->sizes[j + 1]) {
+            if (result->sizes[j] < result->sizes[j + 1]) {
                 uint32_t tmp_size = result->sizes[j];
                 result->sizes[j] = result->sizes[j + 1];
                 result->sizes[j + 1] = tmp_size;
