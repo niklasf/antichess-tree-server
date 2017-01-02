@@ -22,15 +22,10 @@ void test_san() {
     board_move(&board, move_parse("b8a6"));
     board_move(&board, move_parse("b2b4"));
     board_move(&board, move_parse("a6b4"));
-    board_debug(&board);
-    bb_debug(board.occupied[kPawn]);
-    puts("knight");
-    bb_debug(board.occupied[kKnight]);
     board_move(&board, move_parse("d1h5"));
 
     move_t Nxc2 = move_parse("b4c2");
     board_san(&board, Nxc2, san);
-    puts(san);
     assert(strcmp(san, "Nxc2") == 0);
 }
 

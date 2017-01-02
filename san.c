@@ -163,19 +163,18 @@ void board_move(board_t *board, move_t move) {
     piece_type_t pt = board_piece_type_at(board, from);
     if (!pt) return;
 
-    piece_type_t capture = board_piece_type_at(board, to);
-
     board->occupied_co[board->turn] &= ~BB_SQUARE(from);
     board->occupied[kAll] &= ~BB_SQUARE(from);
     board->occupied[pt] &= ~BB_SQUARE(from);
 
+    const piece_type_t capture = board_piece_type_at(board, to);
+
     if (capture) {
         board->occupied_co[!board->turn] &= ~BB_SQUARE(to);
-        board->occupied[pt] &= ~BB_SQUARE(to);
+        board->occupied[capture] &= ~BB_SQUARE(to);
     }
 
     if (pt == kPawn) {
-        printf("pawn move\n");
         if (square_file(from) != square_file(to) && !capture) {
             uint64_t ep_mask = BB_SQUARE(to + (board->turn ? -8 : 8));
             board->occupied_co[!board->turn] &= ~ep_mask;
@@ -187,7 +186,6 @@ void board_move(board_t *board, move_t move) {
     }
 
     if (move_promotion(move)) pt = move_promotion(move);
-    printf("pt after: %d\n", pt);
     board->occupied_co[board->turn] |= BB_SQUARE(to);
     board->occupied[kAll] |= BB_SQUARE(to);
     board->occupied[pt] |= BB_SQUARE(to);
