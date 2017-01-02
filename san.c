@@ -57,7 +57,7 @@ static inline uint8_t move_to(move_t move) {
 }
 
 static piece_type_t move_promotion(move_t move) {
-    static const piece_type_t promotions[] = { kNone, kKnight, kBishop, kRook, kQueen, kKing, kNone, kNone };
+    static const piece_type_t promotions[] = { kNone, kPawn, kKnight, kBishop, kRook, kQueen, kKing, kNone };
     return promotions[move >> 12];
 }
 
@@ -70,7 +70,7 @@ void move_uci(move_t move, char *uci) {
     int from = move_from(move);
     int to = move_to(move);
 
-    const char promotions[] = "\0nbrqk";
+    const char promotions[] = "\0pnbrqk";
 
     sprintf(uci, "%c%c%c%c%c", 'a' + square_file(from), '1' + square_rank(from),
                                'a' + square_file(to),   '1' + square_rank(to),
