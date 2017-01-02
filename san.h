@@ -21,6 +21,8 @@ static inline uint8_t bb_poplsb(uint64_t *bb) {
     return sq;
 }
 
+void bb_debug(uint64_t bb);
+
 typedef enum {
     kAll, kPawn, kKnight, kBishop, kRook, kQueen, kKing,
     kNone = 0

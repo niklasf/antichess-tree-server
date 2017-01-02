@@ -123,6 +123,20 @@ static piece_type_t board_piece_type_at(const board_t *board, uint8_t square) {
     return kNone;
 }
 
+void bb_debug(uint64_t bb) {
+    for (int rank = 7; rank >= 0; rank--) {
+        for (int file = 0; file < 8; file++) {
+            uint8_t square = (rank << 3) | file;
+
+            if (bb & BB_SQUARE(square)) printf("1");
+            else printf(".");
+
+            if (file < 7) printf(" ");
+            else printf("\n");
+        }
+    }
+}
+
 void board_debug(const board_t *board) {
     for (int rank = 7; rank >= 0; rank--) {
         for (int file = 0; file < 8; file++) {
@@ -161,6 +175,7 @@ void board_move(board_t *board, move_t move) {
     }
 
     if (pt == kPawn) {
+        printf("pawn move\n");
         if (square_file(from) != square_file(to) && !capture) {
             uint64_t ep_mask = BB_SQUARE(to + (board->turn ? -8 : 8));
             board->occupied_co[!board->turn] &= ~ep_mask;
@@ -172,6 +187,7 @@ void board_move(board_t *board, move_t move) {
     }
 
     if (move_promotion(move)) pt = move_promotion(move);
+    printf("pt after: %d\n", pt);
     board->occupied_co[board->turn] |= BB_SQUARE(to);
     board->occupied[kAll] |= BB_SQUARE(to);
     board->occupied[pt] |= BB_SQUARE(to);
