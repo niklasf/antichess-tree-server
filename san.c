@@ -57,7 +57,7 @@ static inline uint8_t move_to(move_t move) {
 }
 
 static piece_type_t move_promotion(move_t move) {
-    static const piece_type_t promotions[] = { kNone, kNone, kKnight, kBishop, kRook, kQueen, kKing, kNone };
+    static const piece_type_t promotions[] = { kNone, kKnight, kBishop, kRook, kQueen, kKing, kNone, kNone };
     return promotions[move >> 12];
 }
 
