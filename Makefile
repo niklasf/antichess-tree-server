@@ -1,4 +1,4 @@
-CFLAGS += -O3 -Wall -Wextra -Wpedantic -Wformat-security -Wstack-protector
+CFLAGS += -O3 -Wall -Wextra -Wformat-security -Wstack-protector -pedantic
 CFLAGS += -Wno-language-extension-token
 CFLAGS += -fstack-protector-strong
 CFLAGS += -D_FORTIFY_SOURCE=2 -fPIC
