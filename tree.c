@@ -9,6 +9,8 @@
 
 #include "tree.h"
 
+#define SWAP(x, y) do { typeof(x) SWAP = x; x = y; y = SWAP; } while (0)
+
 static inline bool arr_get_bit(const uint64_t *arr, size_t n) {
     return !!(arr[n >> 6] & (1ULL << (n & 0x3f)));
 }
@@ -292,13 +294,8 @@ void query_result_sort(query_result_t *result) {
     for (size_t i = 0; i < result->num_children; i++) {
         for (size_t j = 0; j < result->num_children - i - 1; j++) {
             if (result->sizes[j] < result->sizes[j + 1]) {
-                uint32_t tmp_size = result->sizes[j];
-                result->sizes[j] = result->sizes[j + 1];
-                result->sizes[j + 1] = tmp_size;
-
-                move_t tmp_move = result->moves[j];
-                result->moves[j] = result->moves[j + 1];
-                result->moves[j + 1] = tmp_move;
+                SWAP(result->sizes[j], result->sizes[j + 1]);
+                SWAP(result->moves[j], result->moves[j + 1]);
             }
         }
     }

@@ -1,8 +1,9 @@
-CFLAGS += -O3 -Wall -Wextra -Wformat-security -Wstack-protector -pedantic
-CFLAGS += -fstack-protector-all --param ssp-buffer-size=4
-CFLAGS += -pie -fPIE
-CFLAGS += -Wl,-z,relro,-z,now
-CFLAGS += -D_FORTIFY_SOURCE=2
+CFLAGS += -O3 -Wall -Wextra -Wpedantic -Wformat-security -Wstack-protector
+CFLAGS += -Wno-language-extension-token
+CFLAGS += -fstack-protector-strong
+CFLAGS += -D_FORTIFY_SOURCE=2 -fPIC
+
+LDFLAGS += -pie -fPIE -Wl,-z,relro,-z,now
 
 all: antichess-tree-server test
 
