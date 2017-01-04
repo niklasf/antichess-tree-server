@@ -1,5 +1,6 @@
 *.proof
 *.done
+*.rev
 *.bz2
 *.o
 antichess-tree-server

@@ -23,15 +23,14 @@ Usage
 [Download](http://magma.maths.usyd.edu.au/~watkins/LOSING_CHESS/index.html)
 and `bunzip2` the proof trees:
 
-* easy18.done
-* e3c5.done
-* e3b6.proof
+    wget -i MIRROR.txt
+    bunzip *.bz2
 
 Then start the server:
 
     ./antichess-tree-server
         [--verbose] [--cors] [--port 5004]
-        easy18.done e3c5.done e3b6.proof
+        e3b5.rev e3b6.noe6.rev e3c5.rev e3c6.rev e3e6.rev e3g5.rev e3Nc6.rev e3Nh6.rev easy12.rev
 
 HTTP API
 --------
