@@ -2,9 +2,9 @@ Antichess solution server
 =========================
 
 HTTP API and C library to query [Watkins antichess proof tables](http://magma.maths.usyd.edu.au/~watkins/LOSING_CHESS/index.html).
-The decompressed proof trees (2.9 GB total) are memory
-mapped allowing the server to run on systems with as little as 128 MB RAM.
-Extra RAM may be used by the operating systems page cache to speed up lookups.
+The decompressed proof trees (2.9 GB total) are memory mapped allowing the
+server to run on systems with as little as 128 MB RAM. Extra RAM may be used
+by the operating systems page cache for faster lookups.
 
 Building
 --------
@@ -120,8 +120,9 @@ int main() {
 Acknowledgements
 ----------------
 
-Thanks to [Mark Watkins](http://magma.maths.usyd.edu.au/~watkins/)
-for solving antichess and publishing the proof trees.
+Thanks to [Mark Watkins](http://magma.maths.usyd.edu.au/~watkins/),
+Ben Nye, Catalin Francu and others for solving antichess and publishing the
+proof trees.
 
 License
 -------
