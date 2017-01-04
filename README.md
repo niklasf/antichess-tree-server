@@ -2,7 +2,7 @@ Antichess solution server
 =========================
 
 HTTP API and C library to query [Watkins antichess proof tables](http://magma.maths.usyd.edu.au/~watkins/LOSING_CHESS/index.html).
-The decompressed proof trees (2.9 GB total) are memory mapped allowing the
+The decompressed proof trees (4.9 GB total) are memory mapped allowing the
 server to run on systems with as little as 128 MB RAM. Extra RAM may be used
 by the operating systems page cache for faster lookups.
 
@@ -30,7 +30,7 @@ Then start the server:
 
     ./antichess-tree-server
         [--verbose] [--cors] [--port 5004]
-        e3b5.rev e3b6.noe6.rev e3c5.rev e3c6.rev e3e6.rev e3g5.rev e3Nc6.rev e3Nh6.rev easy12.rev
+        e3b5.rev e3b6.proof e3c5.rev e3c6.rev e3e6.rev e3g5.rev e3Nc6.rev e3Nh6.rev easy12.rev
 
 HTTP API
 --------
