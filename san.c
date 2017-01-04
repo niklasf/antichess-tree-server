@@ -248,8 +248,6 @@ void board_san(board_t *board, move_t move, char *san) {
     } else {
         *san++ = PCHR[pt];
 
-        if (board->occupied[kAll] & BB_SQUARE(to)) *san++ = 'x';
-
         uint64_t candidates = 0;
         if (pt == kKing) candidates = attacks_sliding(KING_DELTAS, to, board->occupied[kAll]);
         if (pt == kKnight) candidates = attacks_sliding(KNIGHT_DELTAS, to, BB_ALL);
@@ -268,6 +266,8 @@ void board_san(board_t *board, move_t move, char *san) {
 
         if (file) *san++ = 'a' + square_file(from);
         if (rank) *san++ = '1' + square_rank(from);
+
+        if (board->occupied[kAll] & BB_SQUARE(to)) *san++ = 'x';
     }
 
     *san++ = 'a' + square_file(to);
