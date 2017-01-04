@@ -18,8 +18,6 @@ typedef struct hash_entry {
     uint32_t size;
 } hash_entry_t;
 
-static const size_t HASHTABLE_LEN = 0x100000;
-
 typedef struct tree {
     int fd;
 

@@ -19,6 +19,8 @@ static inline void arr_set_bit(uint64_t *arr, size_t n) {
     arr[n >> 6] |= (1ULL << (n & 0x3f));
 }
 
+static const uint32_t HASHTABLE_MASK = 0xfffff;
+
 static uint32_t compute_hash(uint32_t n) {
     uint32_t k = n * n;
     k += (n >> 10) ^ ((~n) & 0x3ff);
@@ -26,7 +28,7 @@ static uint32_t compute_hash(uint32_t n) {
     k += (((~n) >> 15) ^ (n & 0x1f)) << 5;
     k += (n >> 4) & 0x55aa55;
     k += ((~n) >> 8) & 0xaa55aa;
-    return k & 0xfffff;
+    return k & HASHTABLE_MASK;
 }
 
 static const node_t *tree_next(const tree_t *tree, const node_t *node) {
@@ -103,14 +105,14 @@ static uint32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node)
     while (tree->hashtable[bucket].index) {
         if (index == tree->hashtable[bucket].index) return tree->hashtable[bucket].size;
         bucket++;
-        if (bucket == HASHTABLE_LEN) bucket = 0;
+        if (bucket == HASHTABLE_MASK) bucket = 0;
     }
 
     return 0;
 }
 
 static bool tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t size) {
-    if (tree->num_hash_entries > HASHTABLE_LEN / 8) {
+    if (tree->num_hash_entries > HASHTABLE_MASK / 8) {
         // do not fill table too much
         return false;
     }
@@ -120,7 +122,7 @@ static bool tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t si
     uint32_t bucket = compute_hash(tree_index(tree, node));
     while (tree->hashtable[bucket].index) {
         bucket++;
-        if (bucket == HASHTABLE_LEN) bucket = 0;
+        if (bucket == HASHTABLE_MASK) bucket = 0;
     }
 
     tree->hashtable[bucket].index = tree_index(tree, node);
@@ -160,7 +162,7 @@ bool tree_open(tree_t *tree, const char *filename) {
     if (!tree->arr) return false;
 
     tree->num_hash_entries = 0;
-    tree->hashtable = calloc(HASHTABLE_LEN, sizeof(hash_entry_t));
+    tree->hashtable = calloc(HASHTABLE_MASK, sizeof(hash_entry_t));
     if (!tree->hashtable) return false;
 
     // prime hash table
@@ -212,7 +214,7 @@ void tree_debug(const tree_t *tree, bool dump_hashtable) {
     }
 
     if (dump_hashtable) {
-        for (size_t i = 0; i < HASHTABLE_LEN; i++) {
+        for (size_t i = 0; i < HASHTABLE_MASK; i++) {
             if (tree->hashtable[i].index) printf("hashtable[%zu] = <%d, %d>\n", i, tree->hashtable[i].index, tree->hashtable[i].size);
         }
     }
