@@ -1,9 +1,10 @@
 Antichess solution server
 =========================
 
-HTTP API for [Watkins](http://magma.maths.usyd.edu.au/~watkins/LOSING_CHESS/index.html)
-antichess proof tables. The proof trees (< 6 GB total) are memory mapped,
-allowing the server to run with about 128 MB of RAM.
+HTTP API and C library to query [Watkins](http://magma.maths.usyd.edu.au/~watkins/LOSING_CHESS/index.html)
+antichess proof tables. The decompressed proof trees (5.3 GB total) are memory
+mapped allowing the server to run on systems with as little as 256 MB RAM.
+Extra RAM may be used by the operating systems page cache to speed up lookups.
 
 Building
 --------
@@ -70,6 +71,50 @@ plain text in the POST body. Space or comma seperated.
     {"uci": "d7d5", "san": "d5", "nodes": 33},
     {"uci": "d7d6", "san": "d6", "nodes": 31}
   ]
+}
+```
+
+C API
+-----
+
+```c
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
+
+#include "tree.h"
+
+int main() {
+    tree_t tree;
+
+    if (!tree_open(&tree, "easy18.done")) {
+        printf("could not open tree: %s\n", strerror(errno));
+        return 1;
+    }
+
+    query_result_t result;
+    query_result_clear(&result);
+
+    move_t moves[] = { move_parse("e2e3") };
+    size_t moves_len = 1;
+
+    if (!tree_query(&tree, moves, moves_len, &result)) {
+        printf("query failed\n");
+        return 1;
+    }
+
+    // Could also query other trees now. Results are merged.
+
+    query_result_sort(&result);
+
+    for (size_t i = 0; i < result.num_children; i++) {
+        char uci[MAX_UCI];
+        move_uci(result.moves[i], uci);
+
+        printf("%s %d\n", uci, result.sizes[i]);
+    }
+
+    return 0;
 }
 ```
 
