@@ -104,8 +104,7 @@ static uint32_t tree_lookup_subtree_size(const tree_t *tree, const node_t *node)
     uint32_t bucket = compute_hash(index);
     while (tree->hashtable[bucket].index) {
         if (index == tree->hashtable[bucket].index) return tree->hashtable[bucket].size;
-        bucket++;
-        if (bucket == HASHTABLE_MASK) bucket = 0;
+        bucket = (bucket + 1) & HASHTABLE_MASK;
     }
 
     return 0;
@@ -121,8 +120,7 @@ static bool tree_save_subtree_size(tree_t *tree, const node_t *node, uint32_t si
 
     uint32_t bucket = compute_hash(tree_index(tree, node));
     while (tree->hashtable[bucket].index) {
-        bucket++;
-        if (bucket == HASHTABLE_MASK) bucket = 0;
+        bucket = (bucket + 1) & HASHTABLE_MASK;
     }
 
     tree->hashtable[bucket].index = tree_index(tree, node);
@@ -162,7 +160,7 @@ bool tree_open(tree_t *tree, const char *filename) {
     if (!tree->arr) return false;
 
     tree->num_hash_entries = 0;
-    tree->hashtable = calloc(HASHTABLE_MASK, sizeof(hash_entry_t));
+    tree->hashtable = calloc(HASHTABLE_MASK + 1, sizeof(hash_entry_t));
     if (!tree->hashtable) return false;
 
     // prime hash table
@@ -214,7 +212,7 @@ void tree_debug(const tree_t *tree, bool dump_hashtable) {
     }
 
     if (dump_hashtable) {
-        for (size_t i = 0; i < HASHTABLE_MASK; i++) {
+        for (size_t i = 0; i <= HASHTABLE_MASK; i++) {
             if (tree->hashtable[i].index) printf("hashtable[%zu] = <%d, %d>\n", i, tree->hashtable[i].index, tree->hashtable[i].size);
         }
     }
